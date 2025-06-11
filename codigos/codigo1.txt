@@ -1,0 +1,18 @@
+programa testeMedia;
+var
+    cont, x, Media: inteiro; /* Declarando variáveis */
+
+início
+    cont := 1;
+    Media := 0;
+
+    enquanto cont <= 5 faça
+    início
+        escrever("Digite o valor: ");
+        ler(x);
+        Media := Media + x;
+        cont := cont + 1;
+    fim;
+
+    escrever("Media final: ", Media / 5);
+fim.
