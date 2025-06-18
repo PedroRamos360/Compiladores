@@ -71,7 +71,7 @@ class AnalisadorLexico:
         )
         self.token_regex = re.compile(regex_unidas, re.DOTALL)
 
-    def analisar(self):
+    def analisar(self) -> list[Token]:
         tokens = []
         while self.posicao < len(self.codigo_fonte):
             token = self._proximo_token()

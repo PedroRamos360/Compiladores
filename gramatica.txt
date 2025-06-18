@@ -1,17 +1,23 @@
-<prog>::=programa id; [<declarações>] início <lista comandos> fim.
+<prog>::=programa id; [<declarações>] <bloco> 
 <declarações>::=var id {,id} : <tipo>; {id {,id} : <tipo>;}
+<bloco>::= início <lista comandos> fim
 <tipo>::=inteiro | lógico
-<lista comandos>::=<comando> ; {<comando>;}
+<lista comandos>::=<comando>; {<comando>;}
 <comando>::=<atribuição> | <leitura> | <escrita> | <composto> | <condicional> | <repetição>
 <atribuição>::=id := <expr>
 <leitura>::=ler (id {,id}) | ler [(id {,id})]
-
 <escrita>::=escrever (<stringvar> {,<stringvar>}) | escrever [(<stringvar> {,<stringvar>})]
 <composto>::=início <lista comandos> fim
-<condicional>::=se <exprLogico> então <comando> [Senão <comando>]
+<condicional>::=se <exprLogico> então <comando> [senão <comando>]
 <repetição>::=enquanto <exprLogico> faça <comando>
+<expr> ::= <termo> <expr2>
+<expr2> ::= + <termo> <expr2> | - <termo> <expr2> | ε
+<termo> ::= <fator> <termo2>
+<termo2> ::= * <fator> <termo2> | / <fator> <termo2> | ε
+<fator> ::= (<expr>) | - <fator> | id | num
+<exprLogico>::= <expr> <opLogico> <expr> | id
+<opLogico> ::= < | <= | > | >= | = | <>
+
 <expr>::=<expr> + <expr> | <expr> - <expr> | <expr> * <expr> | <expr> / <expr> | - <expr> |
 (<expr>) | id | num
-<exprLogico>::=<expr> < <expr> | <expr> <= <expr> | <expr> > <expr> | <expr> >= <expr>
-| <expr> = <expr> | <expr> <> <expr> | id
 <stringvar>::=str | <expr>

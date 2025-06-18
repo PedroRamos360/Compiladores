@@ -87,3 +87,22 @@ class StringNode(ASTNode):
     def __init__(self, token):
         self.token = token
         self.valor = token.valor[1:-1]  # Remove as aspas
+
+
+class ExprNode(ASTNode):
+    def __init__(self, termo, expr2):
+        self.termo = termo
+        self.expr2 = expr2
+
+
+class TermoNode(ASTNode):
+    def __init__(self, fator, termo2):
+        self.fator = fator
+        self.termo2 = termo2
+
+
+class ExprLogicoNode(ASTNode):
+    def __init__(self, esquerda, operador, direita):
+        self.esquerda = esquerda
+        self.operador = operador
+        self.direita = direita
