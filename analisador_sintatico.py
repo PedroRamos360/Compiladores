@@ -186,13 +186,13 @@ class AnalisadorSintatico:
 
     def _termo2(self):
         """<termo2> ::= * <fator> <termo2> | / <fator> <termo2> | ε"""
-        if self._token_atual().tipo == "MULTIPLICACAO":
-            op = self._consumir("MULTIPLICACAO")
+        if self._token_atual().tipo == "MULT":
+            op = self._consumir("MULT")
             fator = self._fator()
             termo2 = self._termo2()
             return OpBinariaNode(fator, op, termo2)
-        elif self._token_atual().tipo == "DIVISAO":
-            op = self._consumir("DIVISAO")
+        elif self._token_atual().tipo == "DIV":
+            op = self._consumir("DIV")
             fator = self._fator()
             termo2 = self._termo2()
             return OpBinariaNode(fator, op, termo2)
@@ -201,13 +201,13 @@ class AnalisadorSintatico:
 
     def _expr2(self):
         """<expr2> ::= + <termo> <expr2> | - <termo> <expr2> | ε"""
-        if self._token_atual().tipo == "SOMA":
-            op = self._consumir("SOMA")
+        if self._token_atual().tipo == "MAIS":
+            op = self._consumir("MAIS")
             termo = self._termo()
             expr2 = self._expr2()
             return OpBinariaNode(termo, op, expr2)
-        elif self._token_atual().tipo == "SUBTRACAO":
-            op = self._consumir("SUBTRACAO")
+        elif self._token_atual().tipo == "MENOS":
+            op = self._consumir("MENOS")
             termo = self._termo()
             expr2 = self._expr2()
             return OpBinariaNode(termo, op, expr2)
@@ -221,28 +221,36 @@ class AnalisadorSintatico:
             expr = self._expr()
             self._consumir("RPAREN")
             return expr
-        elif self._token_atual().tipo == "SUBTRACAO":
-            op = self._consumir("SUBTRACAO")
+        elif self._token_atual().tipo == "MENOS":
+            op = self._consumir("MENOS")
             fator = self._fator()
             return OpUnariaNode(op, fator)
         elif self._token_atual().tipo == "ID":
             return VariavelNode(self._consumir("ID"))
-        elif self._token_atual().tipo == "NUMERO":
-            return NumeroNode(self._consumir("NUMERO"))
+        elif self._token_atual().tipo == "NÚMERO":
+            return NumeroNode(self._consumir("NÚMERO"))
         else:
             raise SyntaxError(
                 f"Fator inesperado '{self._token_atual().valor}' na linha {self._token_atual().linha}"
             )
 
     def _exprLogico(self):
-        """<exprLogico>::= <expr> <opLogico> <expr> | id"""
-        if self._token_atual().tipo == "ID":
-            return VariavelNode(self._consumir("ID"))
+        """<exprLogico> ::= <expr> <opLogico> <expr> | id"""
+        node_esquerda = self._expr()
+        token_atual = self._token_atual()
+        if token_atual.tipo in {
+            "MENOR",
+            "MENOR_IGUAL",
+            "MAIOR",
+            "MAIOR_IGUAL",
+            "IGUAL",
+            "DIFERENTE",
+        }:
+            op_token = self._opLogico()
+            node_direita = self._expr()
+            return ExprLogicoNode(node_esquerda, op_token, node_direita)
         else:
-            expr1 = self._expr()
-            op = self._opLogico()
-            expr2 = self._expr()
-            return ExprLogicoNode(expr1, op, expr2)
+            return node_esquerda
 
     def _opLogico(self):
         """<opLogico> ::= < | <= | > | >= | = | <>"""

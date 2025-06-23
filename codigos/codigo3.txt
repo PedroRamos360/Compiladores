@@ -1,0 +1,21 @@
+programa expressoesComplexas;
+var
+    nota1, nota2, peso1, peso2: inteiro; /* Múltiplas declarações na mesma linha */
+    mediaPonderada: inteiro;
+
+início
+    /* Teste de precedencia de operadores e parenteses */
+    nota1 := 8;
+    nota2 := 5;
+    peso1 := 2;
+    peso2 := 3;
+
+    mediaPonderada := (nota1 * peso1 + nota2 * peso2) / (peso1 + peso2);
+
+    escrever("A media ponderada eh: ", mediaPonderada);
+
+    se mediaPonderada >= 6 então
+        escrever(" (Aluno Aprovado!)")
+    senão
+        escrever(" (Aluno em Recuperacao.)");
+fim.

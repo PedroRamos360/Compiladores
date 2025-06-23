@@ -89,7 +89,7 @@ class AnalisadorLexico:
         valor = match.group()
         coluna_inicial = self.coluna
 
-        if tipo in ["ESPACO", "COMENTARIO"]:
+        if tipo == "ESPAÇO":
             self.posicao = match.end()
             self.coluna += len(valor)
             return self._proximo_token()
@@ -98,6 +98,16 @@ class AnalisadorLexico:
             self.posicao = match.end()
             self.linha += 1
             self.coluna = 1
+            return self._proximo_token()
+
+        if tipo == "COMENTÁRIO":
+            self.posicao = match.end()
+            num_novas_linhas = valor.count("\n")
+            if num_novas_linhas > 0:
+                self.linha += num_novas_linhas
+                self.coluna = len(valor) - valor.rfind("\n")
+            else:
+                self.coluna += len(valor)
             return self._proximo_token()
 
         if tipo == "ID" and valor.lower() in self.palavras_reservadas:

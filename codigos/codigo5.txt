@@ -1,0 +1,23 @@
+programa calculaFatorial;
+var
+    n, i, fat: inteiro;
+
+início
+    fat := 1;
+    i := 1;
+
+    escrever("Calcular o fatorial de (digite um numero <> 0): ");
+    ler(n);
+
+    se n <> 0 então
+    início
+        enquanto i <= n faça
+        início
+            fat := fat * i;
+            i := i + 1;
+        fim; /* Fim do bloco 'enquanto' */
+
+        escrever("O fatorial de ", n, " eh: ", fat);
+    fim; /* Fim do bloco 'se' */
+
+fim.

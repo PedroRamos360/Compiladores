@@ -1,0 +1,19 @@
+programa verificaParImpar;
+var
+    numero: inteiro; /* Variável para armazenar a entrada do usuário */
+
+início
+    escrever("Digite um numero inteiro: ");
+    ler(numero);
+
+    /*
+     * A gramática não possui operador de módulo (%).
+     * Uma forma de verificar se é par usando apenas divisão inteira
+     * é ver se (n / 2) * 2 é igual ao próprio n.
+    */
+    se (numero / 2) * 2 = numero então
+        escrever(numero, " eh um numero par.")
+    senão
+        escrever(numero, " eh um numero impar.");
+
+fim.

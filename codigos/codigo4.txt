@@ -1,0 +1,36 @@
+programa comparaNumeros;
+var
+    num1, num2: inteiro; /* Declara dois inteiros na mesma linha */
+
+início
+    escrever("--- Comparador de Numeros ---");
+    escrever("Digite o primeiro numero: ");
+    ler(num1);
+    escrever("Digite o segundo numero: ");
+    ler(num2);
+
+    /* * A seguir, uma série de testes condicionais para validar
+     * todos os operadores lógicos e a estrutura 'se-então'.
+     * Cada 'se' é um comando separado.
+    */
+
+    se num1 = num2 então
+        escrever("-> Os numeros sao IGUAIS.");
+
+    se num1 <> num2 então
+        escrever("-> Os numeros sao DIFERENTES.");
+
+    se num1 > num2 então
+        escrever("-> O primeiro numero eh MAIOR que o segundo.");
+        
+    se num1 < num2 então
+        escrever("-> O primeiro numero eh MENOR que o segundo.");
+
+    se num1 >= num2 então
+        escrever("-> O primeiro numero eh MAIOR OU IGUAL ao segundo.");
+
+    se num1 <= num2 então
+        escrever("-> O primeiro numero eh MENOR OU IGUAL ao segundo.");
+
+    escrever("--- Fim das comparacoes ---");
+fim.
