@@ -115,7 +115,7 @@ class AnalisadorLexico:
 
         if tipo == "ERRO":
             raise ValueError(
-                f"Caractere não reconhecido '{valor}' na linha {self.linha}, coluna {coluna_inicial}"
+                f"Erro léxico: Caractere não reconhecido '{valor}' na linha {self.linha}, coluna {coluna_inicial}"
             )
 
         token = Token(tipo, valor, self.linha, coluna_inicial)

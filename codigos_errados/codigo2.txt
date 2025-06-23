@@ -1,0 +1,10 @@
+programa ExemploSemantico2;
+var
+    a: lógico;
+    b: inteiro;
+
+início
+    b := 15;
+    a := b;  /* ERRO: 'a' é lógico, mas 'b' é inteiro. */
+    escrever(b);
+fim.

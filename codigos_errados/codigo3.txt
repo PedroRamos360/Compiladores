@@ -1,0 +1,9 @@
+programa ExemploSemantico3;
+var
+    a: inteiro;
+
+início
+    a := 10;
+    se a então  /* ERRO: 'a' é inteiro, mas a condição exige um tipo lógico. */
+        escrever("condicional com inteiro");
+fim.

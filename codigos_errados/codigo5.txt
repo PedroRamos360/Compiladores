@@ -1,0 +1,7 @@
+programa ExemploSintatico1
+var
+    a: inteiro;
+
+início
+    a := inteiro;
+fim.

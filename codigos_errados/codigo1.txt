@@ -1,0 +1,9 @@
+programa ExemploSemantico1;
+var
+    a: inteiro;
+
+início
+    a := 10;
+    c := a + 5;  /* ERRO: A variável 'c' não foi declarada. */
+    escrever(a);
+fim.

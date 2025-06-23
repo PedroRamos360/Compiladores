@@ -1,0 +1,7 @@
+programa ExemploLexico1
+var
+    a: inteiro;
+
+início
+    %%%%%%**&&& 
+fim.
