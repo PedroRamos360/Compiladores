@@ -1,7 +1,16 @@
-# analisador_semantico.py
-
 from abstract_syntax_tree import *
 from tabela_de_simbolos import TabelaDeSimbolos, Simbolo
+
+class SemanticError(Exception):
+    def __init__(self, mensagem, token=None):
+        super().__init__(mensagem)
+        self.mensagem = mensagem
+        self.token = token
+
+    def __str__(self):
+        if self.token:
+            return f'Erro Semântico: {self.mensagem} na linha {self.token.linha}, coluna {self.token.coluna}'
+        return f'Erro Semântico: {self.mensagem}'
 
 
 class AnalisadorSemantico:
@@ -9,13 +18,11 @@ class AnalisadorSemantico:
         self.tabela_de_simbolos = TabelaDeSimbolos()
 
     def visitar(self, no):
-        """Chama o método 'visitar' apropriado para o tipo de nó."""
         nome_metodo = f"visitar_{type(no).__name__}"
         visitante = getattr(self, nome_metodo, self.visitante_generico)
         return visitante(no)
 
     def visitante_generico(self, no):
-        """Método chamado se nenhum método 'visitar' específico for encontrado."""
         raise Exception(f"Nenhum método visitar_{type(no).__name__} definido")
 
     def visitar_ProgramaNode(self, no):
@@ -32,34 +39,29 @@ class AnalisadorSemantico:
         for no_var in no.var_nodes:
             nome_variavel = no_var.valor
             if self.tabela_de_simbolos.buscar(nome_variavel):
-                raise Exception(
-                    f"Erro Semântico: Variável '{nome_variavel}' já declarada."
-                )
+                raise SemanticError(f"Variável '{nome_variavel}' já declarada.", token=no_var.token)
             simbolo = Simbolo(nome_variavel, nome_tipo)
             self.tabela_de_simbolos.definir(simbolo)
 
     def visitar_AtribuicaoNode(self, no):
-        nome_variavel = no.esquerda.valor
-        simbolo = self.tabela_de_simbolos.buscar(nome_variavel)
+        no_variavel = no.esquerda
+        simbolo = self.tabela_de_simbolos.buscar(no_variavel.valor)
         if not simbolo:
-            raise Exception(
-                f"Erro Semântico: Variável '{nome_variavel}' não declarada."
-            )
+            raise SemanticError(f"Variável '{no_variavel.valor}' não declarada.", token=no_variavel.token)
 
         tipo_expressao = self.visitar(no.direita)
 
         if simbolo.tipo != tipo_expressao:
-            raise Exception(
-                f"Erro Semântico: Incompatibilidade de tipos. Não é possível atribuir '{tipo_expressao}' para a variável '{nome_variavel}' do tipo '{simbolo.tipo}'."
+            raise SemanticError(
+                f"Incompatibilidade de tipos. Não é possível atribuir '{tipo_expressao}' para a variável '{no_variavel.valor}' do tipo '{simbolo.tipo}'.",
+                token=no.op
             )
 
     def visitar_VariavelNode(self, no):
         nome_variavel = no.valor
         simbolo = self.tabela_de_simbolos.buscar(nome_variavel)
         if not simbolo:
-            raise Exception(
-                f"Erro Semântico: Variável '{nome_variavel}' não declarada."
-            )
+            raise SemanticError(f"Variável '{nome_variavel}' não declarada.", token=no.token)
         return simbolo.tipo
 
     def visitar_NumeroNode(self, no):
@@ -69,8 +71,9 @@ class AnalisadorSemantico:
         tipo_esquerda = self.visitar(no.esquerda)
         tipo_direita = self.visitar(no.direita)
         if tipo_esquerda != tipo_direita:
-            raise Exception(
-                f"Erro Semântico: Tipos incompatíveis na expressão lógica ('{tipo_esquerda}' e '{tipo_direita}')."
+            raise SemanticError(
+                f"Tipos incompatíveis na expressão lógica ('{tipo_esquerda}' e '{tipo_direita}').",
+                token=no.operador
             )
         return "lógico"
 
@@ -78,25 +81,25 @@ class AnalisadorSemantico:
         tipo_esquerda = self.visitar(no.esquerda)
         tipo_direita = self.visitar(no.direita)
         if tipo_esquerda != "inteiro" or tipo_direita != "inteiro":
-            raise Exception(
-                f"Erro Semântico: Operações aritméticas só podem ser realizadas em inteiros."
+            raise SemanticError(
+                "Operações aritméticas só podem ser realizadas em inteiros.",
+                token=no.op
             )
         return "inteiro"
 
     def visitar_OpUnariaNode(self, no):
         tipo_expr = self.visitar(no.expr)
         if tipo_expr != "inteiro":
-            raise Exception(
-                f"Erro Semântico: Operação unária de negação só pode ser aplicada a inteiros."
+            raise SemanticError(
+                "Operação unária de negação só pode ser aplicada a inteiros.",
+                token=no.op
             )
         return "inteiro"
 
     def visitar_SeNode(self, no):
         tipo_condicao = self.visitar(no.condicao)
         if tipo_condicao != "lógico":
-            raise Exception(
-                "Erro Semântico: A condição do 'se' deve ser uma expressão lógica."
-            )
+            raise SemanticError("A condição do 'se' deve ser uma expressão lógica.")
         self.visitar(no.ramo_entao)
         if no.ramo_senao:
             self.visitar(no.ramo_senao)
@@ -104,9 +107,7 @@ class AnalisadorSemantico:
     def visitar_EnquantoNode(self, no):
         tipo_condicao = self.visitar(no.condicao)
         if tipo_condicao != "lógico":
-            raise Exception(
-                "Erro Semântico: A condição do 'enquanto' deve ser uma expressão lógica."
-            )
+            raise SemanticError("A condição do 'enquanto' deve ser uma expressão lógica.",)
         self.visitar(no.corpo)
 
     def visitar_LerNode(self, no):
@@ -118,13 +119,9 @@ class AnalisadorSemantico:
             self.visitar(expressao)
 
     def visitar_StringNode(self, no):
-        return "string"  # Assumindo que strings podem ser escritas
+        return "string"
 
     def visitar_ExprNode(self, no):
-        # A lógica para ExprNode e TermoNode pode precisar de refinamento
-        # dependendo de como você quer que a checagem de tipos funcione
-        # em expressões complexas.
-        # Por simplicidade, vamos assumir que a primeira parte determina o tipo.
         return self.visitar(no.termo)
 
     def visitar_TermoNode(self, no):

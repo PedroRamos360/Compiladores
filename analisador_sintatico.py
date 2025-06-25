@@ -8,15 +8,12 @@ class AnalisadorSintatico:
         self.posicao = 0
 
     def _token_atual(self):
-        """Retorna o token atual sem avançar a posição."""
         return self.tokens[self.posicao]
 
     def _avancar(self):
-        """Avança para o próximo token."""
         self.posicao += 1
 
     def _consumir(self, tipo_esperado):
-        """Consome o token atual se for do tipo esperado, senão lança um erro."""
         token = self._token_atual()
         if token.tipo == tipo_esperado:
             self._avancar()
@@ -28,7 +25,6 @@ class AnalisadorSintatico:
             )
 
     def analisar(self) -> ProgramaNode:
-        """Ponto de entrada para iniciar a análise."""
         return self._programa()
 
     def _programa(self):
