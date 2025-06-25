@@ -1,2 +1,1 @@
-- Marcar como erro de sintaxe uso de ++++
-- Tratar a parte {id {,id} : <tipo>;}
+Acho que o problema atual tem a ver com a abstract tree não ter o expr2 como classe
