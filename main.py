@@ -13,8 +13,8 @@ codigos_para_ler = [
 ]
 for codigo in codigos_para_ler:
     try:
-        # codigo_fonte = read_code_file(codigo)
-        codigo_fonte = read_code_file(codigo, "./codigos_errados")
+        codigo_fonte = read_code_file(codigo)
+        # codigo_fonte = read_code_file(codigo, "./codigos_errados")
         analisador = AnalisadorLexico(codigo_fonte)
         tokens = analisador.analisar()
         analisador_sintatico = AnalisadorSintatico(tokens)

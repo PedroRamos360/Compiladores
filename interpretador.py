@@ -3,6 +3,16 @@ from analisador_lexico import AnalisadorLexico
 from analisador_sintatico import AnalisadorSintatico
 from analisador_semantico import AnalisadorSemantico
 import traceback
+import sys
+
+# Variável global para controlar logs de debug
+DEBUG = False
+
+
+def debug_print(*args, **kwargs):
+    """Alias do print que só executa se DEBUG for True"""
+    if DEBUG:
+        print(*args, **kwargs)
 
 
 class InterpretadorError(Exception):
@@ -19,11 +29,11 @@ class Interpretador:
 
     def interpretar(self, no):
         if no is None:
-            print("DEBUG: Nó é None, retornando None")
+            debug_print("DEBUG: Nó é None, retornando None")
             return None
 
         nome_metodo = f"interpretar_{type(no).__name__}"
-        print(f"DEBUG: Interpretando {no}")
+        debug_print(f"DEBUG: Interpretando {no}")
         interpretador = getattr(self, nome_metodo, self.interpretador_generico)
         return interpretador(no)
 
@@ -33,18 +43,29 @@ class Interpretador:
         )
 
     def interpretar_ProgramaNode(self, no):
-        print(f"=== EXECUTANDO PROGRAMA: {no.nome} ===")
+        debug_print(f"=== EXECUTANDO PROGRAMA: {no.nome} ===")
 
         if hasattr(no, "declaracoes") and no.declaracoes:
-            print(f"Processando {len(no.declaracoes)} declarações")
-            for declaracao in no.declaracoes:
-                self.interpretar(declaracao)
+            if isinstance(no.declaracoes, DeclaracoesNode):
+                debug_print("Processando declarações (DeclaracoesNode)")
+                self.interpretar(no.declaracoes)
+            else:
+                debug_print(f"Processando {len(no.declaracoes)} declarações")
+                for declaracao in no.declaracoes:
+                    self.interpretar(declaracao)
 
         if hasattr(no, "bloco") and no.bloco:
-            print("Executando bloco principal")
+            debug_print("Executando bloco principal")
             self.interpretar(no.bloco)
 
-        print("=== PROGRAMA FINALIZADO ===")
+        debug_print("=== PROGRAMA FINALIZADO ===")
+
+    def interpretar_DeclaracoesNode(self, no):
+        """Interpreta o nó de declarações (lista de declarações)"""
+        if hasattr(no, "declaracoes") and no.declaracoes:
+            debug_print(f"Processando {len(no.declaracoes)} grupos de declarações")
+            for declaracao in no.declaracoes:
+                self.interpretar(declaracao)
 
     def interpretar_DeclaracaoVarNode(self, no):
         if (
@@ -54,7 +75,7 @@ class Interpretador:
             and no.tipo_node
         ):
             tipo = no.tipo_node.valor
-            print(f"Declarando variáveis do tipo: {tipo}")
+            debug_print(f"Declarando variáveis do tipo: {tipo}")
 
             for var_node in no.var_nodes:
                 if var_node and hasattr(var_node, "valor"):
@@ -66,22 +87,52 @@ class Interpretador:
                         self.variaveis[nome_var] = False
 
                     self.tipos[nome_var] = tipo
-                    print(
+                    debug_print(
                         f"  Variável '{nome_var}' declarada como {tipo} = {self.variaveis[nome_var]}"
                     )
 
     def interpretar_BlocoNode(self, no):
         if hasattr(no, "lista_comandos") and no.lista_comandos:
-            print(f"Executando bloco com {len(no.lista_comandos)} comandos")
-            for i, comando in enumerate(no.lista_comandos):
+            if isinstance(no.lista_comandos, ListaComandosNode):
+                debug_print(
+                    f"Executando bloco com ListaComandosNode ({len(no.lista_comandos.comandos)} comandos)"
+                )
+                for i, comando in enumerate(no.lista_comandos.comandos):
+                    if comando:
+                        debug_print(f"  Comando {i+1}: {type(comando).__name__}")
+                        self.interpretar(comando)
+            else:
+                debug_print(f"Executando bloco com {len(no.lista_comandos)} comandos")
+                for i, comando in enumerate(no.lista_comandos):
+                    if comando:
+                        debug_print(f"  Comando {i+1}: {type(comando).__name__}")
+                        self.interpretar(comando)
+
+    def interpretar_ListaComandosNode(self, no):
+        """Interpreta uma lista de comandos"""
+        if hasattr(no, "comandos") and no.comandos:
+            debug_print(f"Executando lista com {len(no.comandos)} comandos")
+            for i, comando in enumerate(no.comandos):
                 if comando:
-                    print(f"  Comando {i+1}: {type(comando).__name__}")
+                    debug_print(f"  Comando {i+1}: {type(comando).__name__}")
                     self.interpretar(comando)
+
+    def interpretar_CompostoNode(self, no):
+        """Interpreta um comando composto (início...fim)"""
+        if hasattr(no, "lista_comandos") and no.lista_comandos:
+            debug_print("Executando comando composto")
+            if isinstance(no.lista_comandos, list):
+                for i, comando in enumerate(no.lista_comandos):
+                    if comando:
+                        debug_print(f"  Comando {i+1}: {type(comando).__name__}")
+                        self.interpretar(comando)
+            else:
+                self.interpretar(no.lista_comandos)
 
     def interpretar_AtribuicaoNode(self, no):
         if no.esquerda and no.direita:
             nome_var = no.esquerda.valor
-            print(f"ATRIBUIÇÃO: {nome_var} := ?")
+            debug_print(f"ATRIBUIÇÃO: {nome_var} := ?")
 
             if nome_var not in self.variaveis:
                 raise InterpretadorError(f"Variável '{nome_var}' não foi declarada")
@@ -90,11 +141,11 @@ class Interpretador:
             valor = self.interpretar(no.direita)
             self.variaveis[nome_var] = valor
 
-            print(f"  {nome_var}: {valor_antigo} → {valor}")
+            debug_print(f"  {nome_var}: {valor_antigo} → {valor}")
 
     def interpretar_LerNode(self, no):
         if hasattr(no, "variaveis") and no.variaveis:
-            print(f"LEITURA de {len(no.variaveis)} variáveis")
+            debug_print(f"LEITURA de {len(no.variaveis)} variáveis")
             for variavel in no.variaveis:
                 if variavel and hasattr(variavel, "valor"):
                     nome_var = variavel.valor
@@ -106,7 +157,7 @@ class Interpretador:
 
                     try:
                         tipo_var = self.tipos[nome_var]
-                        print(f"  Lendo {nome_var} ({tipo_var})")
+                        debug_print(f"  Lendo {nome_var} ({tipo_var})")
 
                         if tipo_var == "inteiro":
                             valor = int(input(""))
@@ -118,7 +169,7 @@ class Interpretador:
 
                         valor_antigo = self.variaveis[nome_var]
                         self.variaveis[nome_var] = valor
-                        print(f"    {nome_var}: {valor_antigo} → {valor}")
+                        debug_print(f"    {nome_var}: {valor_antigo} → {valor}")
 
                     except ValueError:
                         raise InterpretadorError(
@@ -127,144 +178,346 @@ class Interpretador:
 
     def interpretar_EscreverNode(self, no):
         if hasattr(no, "expressoes") and no.expressoes:
-            print(f"ESCRITA de {len(no.expressoes)} expressões")
+            debug_print(f"ESCRITA de {len(no.expressoes)} expressões")
             saida = []
 
             for i, expr in enumerate(no.expressoes):
                 if expr:
-                    print(f"  Expressão {i+1}: {type(expr).__name__}")
+                    debug_print(f"  Expressão {i+1}: {type(expr).__name__}")
                     valor = self.interpretar(expr)
-                    print(f"    Resultado: {valor}")
+                    debug_print(f"    Resultado: {valor}")
                     saida.append(str(valor))
 
             resultado = "".join(saida)
-            print(f"SAÍDA: {resultado}")
+            debug_print(f"SAÍDA: {resultado}")
             print(resultado)
 
+    def interpretar_StringVarNode(self, no):
+        """Interpreta um StringVar (string literal ou expressão)"""
+        if hasattr(no, "tipo"):
+            if no.tipo == "string":
+                valor = no.valor if hasattr(no, "valor") else ""
+                debug_print(f"STRING LITERAL: '{valor}'")
+                return valor
+            elif no.tipo == "expr":
+                debug_print("STRING EXPRESSÃO")
+                if hasattr(no, "expr") and no.expr:
+                    valor = self.interpretar(no.expr)
+                    debug_print(f"  Valor da expressão: {valor}")
+                    return str(valor)
+        return ""
+
     def interpretar_SeNode(self, no):
-        print("ESTRUTURA CONDICIONAL (SE)")
+        debug_print("ESTRUTURA CONDICIONAL (SE)")
         if no.condicao:
-            print("  Avaliando condição...")
+            debug_print("  Avaliando condição...")
             condicao_resultado = self.interpretar(no.condicao)
-            print(f"  Condição: {condicao_resultado}")
+            debug_print(f"  Condição: {condicao_resultado}")
 
             if condicao_resultado:
-                print("  Executando ramo ENTÃO")
+                debug_print("  Executando ramo ENTÃO")
                 if no.ramo_entao:
                     self.interpretar(no.ramo_entao)
             else:
-                print("  Executando ramo SENÃO")
+                debug_print("  Executando ramo SENÃO")
                 if hasattr(no, "ramo_senao") and no.ramo_senao:
                     self.interpretar(no.ramo_senao)
 
     def interpretar_EnquantoNode(self, no):
-        print("LOOP ENQUANTO")
+        debug_print("LOOP ENQUANTO")
         if no.condicao and no.corpo:
             iteracao = 0
             while True:
                 iteracao += 1
-                print(f"  Iteração {iteracao}")
-                print("    Avaliando condição...")
+                debug_print(f"  Iteração {iteracao}")
+                debug_print("    Avaliando condição...")
                 condicao_resultado = self.interpretar(no.condicao)
-                print(f"    Condição: {condicao_resultado}")
+                debug_print(f"    Condição: {condicao_resultado}")
 
                 if not condicao_resultado:
-                    print("  Loop finalizado")
+                    debug_print("  Loop finalizado")
                     break
 
-                print("    Executando corpo do loop")
+                debug_print("    Executando corpo do loop")
                 self.interpretar(no.corpo)
 
                 if iteracao > 100:  # Proteção contra loop infinito
-                    print("  AVISO: Loop executado mais de 100 vezes, parando")
+                    debug_print("  AVISO: Loop executado mais de 100 vezes, parando")
                     break
 
     def interpretar_ExprLogicoNode(self, no):
-        print("EXPRESSÃO LÓGICA")
+        debug_print("EXPRESSÃO LÓGICA")
         if no.esquerda and no.direita and no.operador:
-            print(f"  Operador: {no.operador.valor}")
+            # Lidar com OpLogicoNode ou token direto
+            if hasattr(no.operador, "valor"):
+                operador_valor = no.operador.valor
+            else:
+                operador_valor = str(no.operador)
+
+            debug_print(f"  Operador: {operador_valor}")
 
             esquerda = self.interpretar(no.esquerda)
-            print(f"  Operando esquerdo: {esquerda}")
+            debug_print(f"  Operando esquerdo: {esquerda}")
 
             direita = self.interpretar(no.direita)
-            print(f"  Operando direito: {direita}")
+            debug_print(f"  Operando direito: {direita}")
 
-            operador = no.operador.valor
-
-            if operador == "=":
+            if operador_valor == "=":
                 resultado = esquerda == direita
-            elif operador == "<>":
+            elif operador_valor == "<>":
                 resultado = esquerda != direita
-            elif operador == "<":
+            elif operador_valor == "<":
                 resultado = esquerda < direita
-            elif operador == "<=":
+            elif operador_valor == "<=":
                 resultado = esquerda <= direita
-            elif operador == ">":
+            elif operador_valor == ">":
                 resultado = esquerda > direita
-            elif operador == ">=":
+            elif operador_valor == ">=":
                 resultado = esquerda >= direita
             else:
-                raise InterpretadorError(f"Operador lógico desconhecido: {operador}")
+                raise InterpretadorError(
+                    f"Operador lógico desconhecido: {operador_valor}"
+                )
 
-            print(f"  Resultado: {esquerda} {operador} {direita} = {resultado}")
+            debug_print(
+                f"  Resultado: {esquerda} {operador_valor} {direita} = {resultado}"
+            )
             return resultado
 
         return False
 
+    def interpretar_ExprLogicoSimpleNode(self, no):
+        """Interpreta uma expressão lógica simples (apenas um ID)"""
+        if hasattr(no, "id_node") and no.id_node:
+            debug_print("EXPRESSÃO LÓGICA SIMPLES")
+            valor = self.interpretar(no.id_node)
+            debug_print(f"  Valor: {valor}")
+            # Em uma expressão lógica, retorna True se o valor for diferente de 0/False
+            resultado = bool(valor)
+            debug_print(f"  Resultado lógico: {resultado}")
+            return resultado
+        return False
+
     def interpretar_ExprNode(self, no):
-        print("EXPRESSÃO ARITMÉTICA")
+        debug_print("EXPRESSÃO ARITMÉTICA")
         if hasattr(no, "termo") and no.termo:
-            print(f"  Termo: {no}")
-            resultado = self.interpretar(no.termo)
-            print(f"  Resultado do termo: {resultado}")
+            debug_print(f"  Interpretando termo...")
+            termo_valor = self.interpretar(no.termo)
+            debug_print(f"  Resultado do termo: {termo_valor}")
 
             if hasattr(no, "expr2") and no.expr2:
-                print(f"  Expr2: {type(no.expr2).__name__}")
-                if hasattr(no.expr2, "direita"):
-                    print(f"    Expr2.direita: {no.expr2.direita}")
-                if hasattr(no.expr2, "esquerda"):
-                    print(
-                        f"    Expr2.esquerda: {no.expr2.esquerda if no.expr2.esquerda else None}"
-                    )
-                if hasattr(no.expr2, "op"):
-                    print(f"    Expr2.op: {no.expr2.op.valor if no.expr2.op else None}")
-
-                expr2_resultado = self.interpretar(no.expr2)
-                print(f"  Resultado da expr2: {expr2_resultado}")
+                debug_print(f"  Interpretando expr2...")
+                # Expr2 aplica a operação ao termo_valor
+                expr2_resultado = self.interpretar_expr2_com_valor(
+                    no.expr2, termo_valor
+                )
+                debug_print(f"  Resultado final da expressão: {expr2_resultado}")
                 return expr2_resultado
 
-            return resultado
+            return termo_valor
         return 0
 
     def interpretar_TermoNode(self, no):
-        print("TERMO")
+        debug_print("TERMO")
         if hasattr(no, "fator") and no.fator:
-            print(f"  Fator: {no}")
-            resultado = self.interpretar(no.fator)
-            print(f"  Resultado do fator: {resultado}")
+            debug_print(f"  Interpretando fator...")
+            fator_valor = self.interpretar(no.fator)
+            debug_print(f"  Resultado do fator: {fator_valor}")
 
             if hasattr(no, "termo2") and no.termo2:
-                print(f"  Termo2: {type(no.termo2).__name__}")
-                termo2_resultado = self.interpretar(no.termo2)
-                print(f"  Resultado do termo2: {termo2_resultado}")
+                debug_print(f"  Interpretando termo2...")
+                # Termo2 aplica a operação ao fator_valor
+                termo2_resultado = self.interpretar_termo2_com_valor(
+                    no.termo2, fator_valor
+                )
+                debug_print(f"  Resultado final do termo: {termo2_resultado}")
                 return termo2_resultado
 
-            return resultado
+            return fator_valor
+        return 1
+
+    def interpretar_FatorNode(self, no):
+        """Interpreta um fator"""
+        if hasattr(no, "tipo"):
+            debug_print(f"FATOR ({no.tipo})")
+
+            if no.tipo == "parenteses":
+                if hasattr(no, "expr") and no.expr:
+                    debug_print("  Avaliando expressão entre parênteses")
+                    return self.interpretar(no.expr)
+
+            elif no.tipo == "negativo":
+                if hasattr(no, "fator") and no.fator:
+                    debug_print("  Aplicando negação")
+                    valor = self.interpretar(no.fator)
+                    resultado = -valor
+                    debug_print(f"  -{valor} = {resultado}")
+                    return resultado
+
+            elif no.tipo == "id":
+                if hasattr(no, "valor") and no.valor:
+                    nome_var = no.valor
+                    if nome_var not in self.variaveis:
+                        raise InterpretadorError(
+                            f"Variável '{nome_var}' não foi declarada"
+                        )
+                    valor = self.variaveis[nome_var]
+                    debug_print(f"  Variável {nome_var} = {valor}")
+                    return valor
+
+            elif no.tipo == "num":
+                if hasattr(no, "valor") and no.valor is not None:
+                    debug_print(f"  Número: {no.valor}")
+                    return no.valor
+
         return 0
 
+    def interpretar_Expr2Node(self, no):
+        """Interpreta a continuação de uma expressão - método mantido para compatibilidade"""
+        debug_print("EXPR2 - Método legado (não deveria ser chamado diretamente)")
+        if hasattr(no, "operador") and no.operador:
+            termo_valor = (
+                self.interpretar(no.termo) if hasattr(no, "termo") and no.termo else 0
+            )
+            operador = (
+                no.operador.valor if hasattr(no.operador, "valor") else str(no.operador)
+            )
+            resto_valor = 0
+            if hasattr(no, "expr2") and no.expr2:
+                resto_valor = self.interpretar(no.expr2)
+
+            if operador == "+":
+                resultado = termo_valor + resto_valor
+            elif operador == "-":
+                resultado = termo_valor - resto_valor
+            else:
+                raise InterpretadorError(f"Operador desconhecido em Expr2: {operador}")
+
+            return resultado
+        else:
+            return 0
+
+    def interpretar_expr2_com_valor(self, expr2_no, valor_acumulado):
+        """Interpreta expr2 aplicando as operações ao valor acumulado"""
+        if hasattr(expr2_no, "operador") and expr2_no.operador:
+            debug_print("EXPR2 - Continuação de expressão com valor")
+
+            termo_valor = (
+                self.interpretar(expr2_no.termo)
+                if hasattr(expr2_no, "termo") and expr2_no.termo
+                else 0
+            )
+            debug_print(f"  Valor do termo: {termo_valor}")
+
+            operador = (
+                expr2_no.operador.valor
+                if hasattr(expr2_no.operador, "valor")
+                else str(expr2_no.operador)
+            )
+            debug_print(f"  Operador: {operador}")
+
+            # Aplicar a operação ao valor acumulado
+            if operador == "+":
+                resultado_parcial = valor_acumulado + termo_valor
+            elif operador == "-":
+                resultado_parcial = valor_acumulado - termo_valor
+            else:
+                raise InterpretadorError(f"Operador desconhecido em Expr2: {operador}")
+
+            debug_print(
+                f"  Operação: {valor_acumulado} {operador} {termo_valor} = {resultado_parcial}"
+            )
+
+            # Processar o resto da expressão recursivamente
+            if hasattr(expr2_no, "expr2") and expr2_no.expr2:
+                resultado_final = self.interpretar_expr2_com_valor(
+                    expr2_no.expr2, resultado_parcial
+                )
+                return resultado_final
+            else:
+                return resultado_parcial
+        else:
+            # Caso épsilon
+            debug_print("EXPR2 - Épsilon, retornando valor acumulado")
+            return valor_acumulado
+
+    def interpretar_termo2_com_valor(self, termo2_no, valor_acumulado):
+        """Interpreta termo2 aplicando as operações ao valor acumulado"""
+        if hasattr(termo2_no, "operador") and termo2_no.operador:
+            debug_print("TERMO2 - Continuação de termo com valor")
+
+            fator_valor = (
+                self.interpretar(termo2_no.fator)
+                if hasattr(termo2_no, "fator") and termo2_no.fator
+                else 1
+            )
+            debug_print(f"  Valor do fator: {fator_valor}")
+
+            operador = (
+                termo2_no.operador.valor
+                if hasattr(termo2_no.operador, "valor")
+                else str(termo2_no.operador)
+            )
+            debug_print(f"  Operador: {operador}")
+
+            # Aplicar a operação ao valor acumulado
+            if operador == "*":
+                resultado_parcial = valor_acumulado * fator_valor
+            elif operador == "/":
+                if fator_valor == 0:
+                    raise InterpretadorError("Divisão por zero")
+                resultado_parcial = valor_acumulado // fator_valor
+            else:
+                raise InterpretadorError(f"Operador desconhecido em Termo2: {operador}")
+
+            debug_print(
+                f"  Operação: {valor_acumulado} {operador} {fator_valor} = {resultado_parcial}"
+            )
+
+            # Processar o resto do termo recursivamente
+            if hasattr(termo2_no, "termo2") and termo2_no.termo2:
+                resultado_final = self.interpretar_termo2_com_valor(
+                    termo2_no.termo2, resultado_parcial
+                )
+                return resultado_final
+            else:
+                return resultado_parcial
+        else:
+            # Caso épsilon
+            debug_print("TERMO2 - Épsilon, retornando valor acumulado")
+            return valor_acumulado
+
+    def interpretar_IdNode(self, no):
+        """Interpreta um identificador"""
+        if hasattr(no, "valor") and no.valor:
+            nome_var = no.valor
+            if nome_var not in self.variaveis:
+                raise InterpretadorError(f"Variável '{nome_var}' não foi declarada")
+            valor = self.variaveis[nome_var]
+            debug_print(f"ID: {nome_var} = {valor}")
+            return valor
+        return 0
+
+    def interpretar_OpLogicoNode(self, no):
+        """Interpreta um operador lógico (usado indiretamente)"""
+        if hasattr(no, "valor"):
+            return no.valor
+        return None
+
     def interpretar_OpBinariaNode(self, no):
-        print("OPERAÇÃO BINÁRIA")
-        print(f"  Esquerda: {type(no.esquerda).__name__ if no.esquerda else None}")
-        print(f"  Direita: {type(no.direita).__name__ if no.direita else None}")
-        print(f"  Operador: {no.op.valor if no.op else None}")
+        debug_print("OPERAÇÃO BINÁRIA")
+        debug_print(
+            f"  Esquerda: {type(no.esquerda).__name__ if no.esquerda else None}"
+        )
+        debug_print(f"  Direita: {type(no.direita).__name__ if no.direita else None}")
+        debug_print(f"  Operador: {no.op.valor if no.op else None}")
 
         if no.esquerda and no.direita and no.op:
             esquerda = self.interpretar(no.esquerda)
-            print(f"  Valor esquerdo: {esquerda}")
+            debug_print(f"  Valor esquerdo: {esquerda}")
 
             direita = self.interpretar(no.direita)
-            print(f"  Valor direito: {direita}")
+            debug_print(f"  Valor direito: {direita}")
 
             operador = no.op.valor
 
@@ -281,20 +534,20 @@ class Interpretador:
             else:
                 raise InterpretadorError(f"Operador binário desconhecido: {operador}")
 
-            print(f"  Operação: {esquerda} {operador} {direita} = {resultado}")
+            debug_print(f"  Operação: {esquerda} {operador} {direita} = {resultado}")
             return resultado
 
-        print("  ERRO: Operação binária incompleta!")
+        debug_print("  ERRO: Operação binária incompleta!")
         return 0
 
     def interpretar_OpUnariaNode(self, no):
-        print("OPERAÇÃO UNÁRIA")
+        debug_print("OPERAÇÃO UNÁRIA")
         if no.expr and no.op:
             operador = no.op.valor
-            print(f"  Operador: {operador}")
+            debug_print(f"  Operador: {operador}")
 
             valor = self.interpretar(no.expr)
-            print(f"  Valor: {valor}")
+            debug_print(f"  Valor: {valor}")
 
             if operador == "-":
                 resultado = -valor
@@ -303,7 +556,7 @@ class Interpretador:
             else:
                 raise InterpretadorError(f"Operador unário desconhecido: {operador}")
 
-            print(f"  Resultado: {operador}{valor} = {resultado}")
+            debug_print(f"  Resultado: {operador}{valor} = {resultado}")
             return resultado
 
         return 0
@@ -316,21 +569,21 @@ class Interpretador:
                 raise InterpretadorError(f"Variável '{nome_var}' não foi declarada")
 
             valor = self.variaveis[nome_var]
-            print(f"VARIÁVEL: {nome_var} = {valor}")
+            debug_print(f"VARIÁVEL: {nome_var} = {valor}")
             return valor
 
         return 0
 
     def interpretar_NumeroNode(self, no):
         if hasattr(no, "valor") and no.valor is not None:
-            print(f"NÚMERO: {no.valor}")
+            debug_print(f"NÚMERO: {no.valor}")
             return no.valor
         return 0
 
     def interpretar_StringNode(self, no):
         if hasattr(no, "valor") and no.valor:
             valor_limpo = no.valor.strip("\"'")
-            print(f"STRING: '{valor_limpo}'")
+            debug_print(f"STRING: '{valor_limpo}'")
             return valor_limpo
         return ""
 
@@ -347,32 +600,32 @@ class ExecutorInterpretador:
 
     def interpretar_codigo(self, codigo_fonte):
         try:
-            print("=== INICIANDO ANÁLISE LÉXICA ===")
+            debug_print("=== INICIANDO ANÁLISE LÉXICA ===")
             self.analisador_lexico = AnalisadorLexico(codigo_fonte)
             tokens = self.analisador_lexico.analisar()
-            print(f"Tokens gerados: {len(tokens)}")
+            debug_print(f"Tokens gerados: {len(tokens)}")
 
-            print("\n=== INICIANDO ANÁLISE SINTÁTICA ===")
+            debug_print("\n=== INICIANDO ANÁLISE SINTÁTICA ===")
             self.analisador_sintatico = AnalisadorSintatico(tokens)
             arvore_sintatica = self.analisador_sintatico.analisar()
 
             if arvore_sintatica is None:
                 raise Exception("Análise sintática falhou - árvore sintática é None")
 
-            print(f"AST raiz: {type(arvore_sintatica).__name__}")
+            debug_print(f"AST raiz: {type(arvore_sintatica).__name__}")
 
-            print("\n=== INICIANDO ANÁLISE SEMÂNTICA ===")
+            debug_print("\n=== INICIANDO ANÁLISE SEMÂNTICA ===")
             self.analisador_semantico.visitar(arvore_sintatica)
-            print("Análise semântica concluída")
+            debug_print("Análise semântica concluída")
 
-            print("\n=== INICIANDO INTERPRETAÇÃO ===")
+            debug_print("\n=== INICIANDO INTERPRETAÇÃO ===")
             self.interpretador = Interpretador()
             self.interpretador.interpretar(arvore_sintatica)
 
-            print("\n=== ESTADO FINAL DAS VARIÁVEIS ===")
+            debug_print("\n=== ESTADO FINAL DAS VARIÁVEIS ===")
             for var, valor in self.interpretador.variaveis.items():
                 tipo = self.interpretador.tipos.get(var, "desconhecido")
-                print(f"  {var} ({tipo}): {valor}")
+                debug_print(f"  {var} ({tipo}): {valor}")
 
             return True
 
@@ -387,15 +640,22 @@ if __name__ == "__main__":
     from read_code_file import read_code_file
 
     try:
-        codigo_fonte = read_code_file("codigo1.txt")
+        # Get the argument from the terminal
+        if len(sys.argv) > 1:
+            file_path = sys.argv[1]
+        else:
+            raise Exception("No file path provided as argument.")
+
+        # Pass the file path to read_code_file
+        codigo_fonte = read_code_file(file_path)
 
         executor = ExecutorInterpretador()
         sucesso = executor.interpretar_codigo(codigo_fonte)
 
         if sucesso:
-            print("\n=== INTERPRETAÇÃO CONCLUÍDA COM SUCESSO ===")
+            debug_print("\n=== INTERPRETAÇÃO CONCLUÍDA COM SUCESSO ===")
         else:
-            print("\n=== FALHA NA INTERPRETAÇÃO ===")
+            debug_print("\n=== FALHA NA INTERPRETAÇÃO ===")
 
     except Exception as e:
         print(f"Erro: {e}")

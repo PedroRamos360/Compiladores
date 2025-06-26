@@ -46,7 +46,7 @@ class AnalisadorSintatico:
             self._consumir("VAR")
             while self._token_atual().tipo == "ID":
                 declaracoes.append(self._lista_declaracao_var())
-        return declaracoes
+        return DeclaracoesNode(declaracoes) if declaracoes else None
 
     def _lista_declaracao_var(self):
         """id {,id} : <tipo>;"""
@@ -79,7 +79,11 @@ class AnalisadorSintatico:
         self._consumir("INÍCIO")
         lista_comandos = self._lista_comandos()
         self._consumir("FIM")
-        return BlocoNode(lista_comandos)
+        return BlocoNode(
+            lista_comandos.comandos
+            if isinstance(lista_comandos, ListaComandosNode)
+            else lista_comandos
+        )
 
     def _lista_comandos(self):
         """<lista comandos> ::= <comando>; {<comando>;}"""
@@ -89,7 +93,7 @@ class AnalisadorSintatico:
             if self._token_atual().tipo == "FIM":
                 break
             comandos.append(self._comando())
-        return comandos
+        return ListaComandosNode(comandos)
 
     def _comando(self):
         """<comando> ::= <atribuição> | <leitura> | <escrita> | <composto> | <condicional> | <repetição>"""
@@ -101,7 +105,7 @@ class AnalisadorSintatico:
         elif token_tipo == "ESCREVER":
             return self._escrita()
         elif token_tipo == "INÍCIO":
-            return self._bloco()
+            return self._comando_composto()
         elif token_tipo == "SE":
             return self._condicional()
         elif token_tipo == "ENQUANTO":
@@ -111,6 +115,17 @@ class AnalisadorSintatico:
             raise SyntaxError(
                 f"Comando inesperado '{token_atual.valor}' na linha {token_atual.linha}"
             )
+
+    def _comando_composto(self):
+        """<composto> ::= início <lista comandos> fim"""
+        self._consumir("INÍCIO")
+        lista_comandos = self._lista_comandos()
+        self._consumir("FIM")
+        return CompostoNode(
+            lista_comandos.comandos
+            if isinstance(lista_comandos, ListaComandosNode)
+            else lista_comandos
+        )
 
     def _atribuicao(self) -> AtribuicaoNode:
         """<atribuição> ::= id := <expr>"""
@@ -144,9 +159,11 @@ class AnalisadorSintatico:
     def _stringvar(self):
         """<stringvar> ::= str | <expr>"""
         if self._token_atual().tipo == "STRING":
-            return StringNode(self._consumir("STRING"))
+            token = self._consumir("STRING")
+            return StringVarNode("string", valor=token.valor[1:-1])  # Remove aspas
         else:
-            return self._expr()
+            expr = self._expr()
+            return StringVarNode("expr", expr=expr)
 
     def _condicional(self):
         """<condicional> ::= se <exprLogico> então <comando> [senão <comando>]"""
@@ -186,14 +203,14 @@ class AnalisadorSintatico:
             op = self._consumir("MULT")
             fator = self._fator()
             termo2 = self._termo2()
-            return OpBinariaNode(fator, op, termo2)
+            return Termo2Node(op, fator, termo2)
         elif self._token_atual().tipo == "DIV":
             op = self._consumir("DIV")
             fator = self._fator()
             termo2 = self._termo2()
-            return OpBinariaNode(fator, op, termo2)
+            return Termo2Node(op, fator, termo2)
         else:
-            return None
+            return Termo2Node()  # Representa ε
 
     def _expr2(self):
         """<expr2> ::= + <termo> <expr2> | - <termo> <expr2> | ε"""
@@ -201,14 +218,14 @@ class AnalisadorSintatico:
             op = self._consumir("MAIS")
             termo = self._termo()
             expr2 = self._expr2()
-            return OpBinariaNode(termo, op, expr2)
+            return Expr2Node(op, termo, expr2)
         elif self._token_atual().tipo == "MENOS":
             op = self._consumir("MENOS")
             termo = self._termo()
             expr2 = self._expr2()
-            return OpBinariaNode(termo, op, expr2)
+            return Expr2Node(op, termo, expr2)
         else:
-            return None
+            return Expr2Node()  # Representa ε
 
     def _fator(self):
         """<fator> ::= (<expr>) | - <fator> | id | num"""
@@ -216,15 +233,17 @@ class AnalisadorSintatico:
             self._consumir("LPAREN")
             expr = self._expr()
             self._consumir("RPAREN")
-            return expr
+            return FatorNode("parenteses", expr=expr)
         elif self._token_atual().tipo == "MENOS":
             op = self._consumir("MENOS")
             fator = self._fator()
-            return OpUnariaNode(op, fator)
+            return FatorNode("negativo", fator=fator, token=op)
         elif self._token_atual().tipo == "ID":
-            return VariavelNode(self._consumir("ID"))
+            token = self._consumir("ID")
+            return FatorNode("id", valor=token.valor, token=token)
         elif self._token_atual().tipo == "NÚMERO":
-            return NumeroNode(self._consumir("NÚMERO"))
+            token = self._consumir("NÚMERO")
+            return FatorNode("num", valor=int(token.valor), token=token)
         else:
             raise SyntaxError(
                 f"Fator inesperado '{self._token_atual().valor}' na linha {self._token_atual().linha}"
@@ -232,6 +251,24 @@ class AnalisadorSintatico:
 
     def _exprLogico(self):
         """<exprLogico> ::= <expr> <opLogico> <expr> | id"""
+        # Primeiro tentamos ver se é apenas um ID (forma simples)
+        if self._token_atual().tipo == "ID":
+            # Olhamos à frente para ver se há um operador lógico
+            if self.posicao + 1 < len(self.tokens):
+                proximo_token = self.tokens[self.posicao + 1]
+                if proximo_token.tipo not in {
+                    "MENOR",
+                    "MENOR_IGUAL",
+                    "MAIOR",
+                    "MAIOR_IGUAL",
+                    "IGUAL",
+                    "DIFERENTE",
+                }:
+                    # É apenas um ID, não uma comparação
+                    token_id = self._consumir("ID")
+                    return ExprLogicoSimpleNode(IdNode(token_id))
+
+        # Caso contrário, é uma expressão completa
         node_esquerda = self._expr()
         token_atual = self._token_atual()
         if token_atual.tipo in {
@@ -260,7 +297,7 @@ class AnalisadorSintatico:
             "DIFERENTE",
         }:
             self._avancar()
-            return token
+            return OpLogicoNode(token)
         else:
             raise SyntaxError(
                 f"Operador lógico inesperado '{token.valor}' na linha {token.linha}"
