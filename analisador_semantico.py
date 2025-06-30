@@ -55,15 +55,6 @@ class AnalisadorSemantico:
             for comando in no.comandos:
                 self.visitar(comando)
 
-    def visitar_CompostoNode(self, no):
-        """Visita um comando composto"""
-        if hasattr(no, "lista_comandos") and no.lista_comandos:
-            if isinstance(no.lista_comandos, list):
-                for comando in no.lista_comandos:
-                    self.visitar(comando)
-            else:
-                self.visitar(no.lista_comandos)
-
     def visitar_DeclaracaoVarNode(self, no):
         nome_tipo = no.tipo_node.valor
         for no_var in no.var_nodes:

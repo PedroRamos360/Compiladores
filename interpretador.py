@@ -116,18 +116,6 @@ class Interpretador:
                     debug_print(f"  Comando {i+1}: {type(comando).__name__}")
                     self.interpretar(comando)
 
-    def interpretar_CompostoNode(self, no):
-        """Interpreta um comando composto (início...fim)"""
-        if hasattr(no, "lista_comandos") and no.lista_comandos:
-            debug_print("Executando comando composto")
-            if isinstance(no.lista_comandos, list):
-                for i, comando in enumerate(no.lista_comandos):
-                    if comando:
-                        debug_print(f"  Comando {i+1}: {type(comando).__name__}")
-                        self.interpretar(comando)
-            else:
-                self.interpretar(no.lista_comandos)
-
     def interpretar_AtribuicaoNode(self, no):
         if no.esquerda and no.direita:
             nome_var = no.esquerda.valor

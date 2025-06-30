@@ -3,11 +3,10 @@
 <bloco>::= início <lista comandos> fim
 <tipo>::=inteiro | lógico
 <lista comandos>::=<comando>; {<comando>;}
-<comando>::=<atribuição> | <leitura> | <escrita> | <composto> | <condicional> | <repetição>
+<comando>::=<atribuição> | <leitura> | <escrita> | <bloco> | <condicional> | <repetição>
 <atribuição>::=id := <expr>
 <leitura>::=ler (id {,id})
 <escrita>::=escrever (<stringvar> {,<stringvar>})
-<composto>::=início <lista comandos> fim
 <condicional>::=se <exprLogico> então <comando> [senão <comando>]
 <repetição>::=enquanto <exprLogico> faça <comando>
 <expr> ::= <termo> <expr2>

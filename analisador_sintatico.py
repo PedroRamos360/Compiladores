@@ -101,7 +101,7 @@ class AnalisadorSintatico:
         elif token_tipo == "ESCREVER":
             return self._escrita()
         elif token_tipo == "INÍCIO":
-            return self._comando_composto()
+            return self._bloco()
         elif token_tipo == "SE":
             return self._condicional()
         elif token_tipo == "ENQUANTO":
@@ -111,17 +111,6 @@ class AnalisadorSintatico:
             raise SyntaxError(
                 f"Comando inesperado '{token_atual.valor}' na linha {token_atual.linha}"
             )
-
-    def _comando_composto(self):
-        """<composto> ::= início <lista comandos> fim"""
-        self._consumir("INÍCIO")
-        lista_comandos = self._lista_comandos()
-        self._consumir("FIM")
-        return CompostoNode(
-            lista_comandos.comandos
-            if isinstance(lista_comandos, ListaComandosNode)
-            else lista_comandos
-        )
 
     def _atribuicao(self) -> AtribuicaoNode:
         """<atribuição> ::= id := <expr>"""

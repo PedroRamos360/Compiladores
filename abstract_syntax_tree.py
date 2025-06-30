@@ -295,12 +295,15 @@ class OpLogicoNode(ASTNode):
         return f"OpLogicoNode('{self.valor}')"
 
 
-class CompostoNode(ComandoNode):
-    def __init__(self, lista_comandos):
-        self.lista_comandos = lista_comandos
+class ExprLogicoSimpleNode(ASTNode):
+    def __init__(self, id_node):
+        self.id_node = id_node
 
     def __str__(self):
-        return f"CompostoNode(comandos={len(self.lista_comandos) if self.lista_comandos else 0})"
+        id_valor = (
+            self.id_node.valor if hasattr(self.id_node, "valor") else str(self.id_node)
+        )
+        return f"ExprLogicoSimpleNode(id='{id_valor}')"
 
 
 class ListaComandosNode(ASTNode):
@@ -332,17 +335,6 @@ class IdNode(ASTNode):
 
     def __str__(self):
         return f"IdNode('{self.valor}')"
-
-
-class ExprLogicoSimpleNode(ASTNode):
-    def __init__(self, id_node):
-        self.id_node = id_node
-
-    def __str__(self):
-        id_valor = (
-            self.id_node.valor if hasattr(self.id_node, "valor") else str(self.id_node)
-        )
-        return f"ExprLogicoSimpleNode(id='{id_valor}')"
 
 
 class DeclaracoesNode(ASTNode):
