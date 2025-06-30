@@ -92,10 +92,33 @@ class AnalisadorSemantico:
                 token=no.op,
             )
 
+    def extrair_token_de_no(self, no):
+        if hasattr(no, "token") and no.token:
+            return no.token
+
+        if hasattr(no, "valor") and hasattr(no, "token"):
+            return no.token
+        elif hasattr(no, "esquerda") and hasattr(no.esquerda, "token"):
+            return no.esquerda.token
+        elif hasattr(no, "id_node") and hasattr(no.id_node, "token"):
+            return no.id_node.token
+        elif hasattr(no, "termo") and hasattr(no.termo, "token"):
+            return no.termo.token
+        elif hasattr(no, "fator") and hasattr(no.fator, "token"):
+            return no.fator.token
+
+        return None
+
     def visitar_SeNode(self, no):
         """Visita um comando SE"""
         if no.condicao:
             tipo_condicao = self.visitar(no.condicao)
+            if tipo_condicao != "lógico":
+                token_erro = self.extrair_token_de_no(no.condicao)
+                raise SemanticError(
+                    f"Condição em 'se' deve ser do tipo lógico, mas encontrado '{tipo_condicao}'.",
+                    token=token_erro,
+                )
 
         if no.ramo_entao:
             self.visitar(no.ramo_entao)
@@ -107,6 +130,12 @@ class AnalisadorSemantico:
         """Visita um comando ENQUANTO"""
         if no.condicao:
             tipo_condicao = self.visitar(no.condicao)
+            if tipo_condicao != "lógico":
+                token_erro = self.extrair_token_de_no(no.condicao)
+                raise SemanticError(
+                    f"Condição em 'enquanto' deve ser do tipo lógico, mas encontrado '{tipo_condicao}'.",
+                    token=token_erro,
+                )
 
         if no.corpo:
             self.visitar(no.corpo)

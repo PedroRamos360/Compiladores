@@ -28,7 +28,7 @@ class AnalisadorSintatico:
         return self._programa()
 
     def _programa(self):
-        """<prog> ::= programa id; [<declarações>] início <lista comandos> fim."""
+        """<prog>::=programa id; [<declarações>] <bloco> ."""
         self._consumir("PROGRAMA")
         nome_programa = self._consumir("ID").valor
         self._consumir("PONTO_VÍRGULA")
@@ -79,11 +79,7 @@ class AnalisadorSintatico:
         self._consumir("INÍCIO")
         lista_comandos = self._lista_comandos()
         self._consumir("FIM")
-        return BlocoNode(
-            lista_comandos.comandos
-            if isinstance(lista_comandos, ListaComandosNode)
-            else lista_comandos
-        )
+        return BlocoNode(lista_comandos.comandos)
 
     def _lista_comandos(self):
         """<lista comandos> ::= <comando>; {<comando>;}"""
@@ -160,7 +156,7 @@ class AnalisadorSintatico:
         """<stringvar> ::= str | <expr>"""
         if self._token_atual().tipo == "STRING":
             token = self._consumir("STRING")
-            return StringVarNode("string", valor=token.valor[1:-1])  # Remove aspas
+            return StringVarNode("string", valor=token.valor[1:-1])
         else:
             expr = self._expr()
             return StringVarNode("expr", expr=expr)
@@ -210,7 +206,7 @@ class AnalisadorSintatico:
             termo2 = self._termo2()
             return Termo2Node(op, fator, termo2)
         else:
-            return Termo2Node()  # Representa ε
+            return Termo2Node()
 
     def _expr2(self):
         """<expr2> ::= + <termo> <expr2> | - <termo> <expr2> | ε"""
@@ -225,7 +221,7 @@ class AnalisadorSintatico:
             expr2 = self._expr2()
             return Expr2Node(op, termo, expr2)
         else:
-            return Expr2Node()  # Representa ε
+            return Expr2Node()
 
     def _fator(self):
         """<fator> ::= (<expr>) | - <fator> | id | num"""
@@ -251,9 +247,7 @@ class AnalisadorSintatico:
 
     def _exprLogico(self):
         """<exprLogico> ::= <expr> <opLogico> <expr> | id"""
-        # Primeiro tentamos ver se é apenas um ID (forma simples)
         if self._token_atual().tipo == "ID":
-            # Olhamos à frente para ver se há um operador lógico
             if self.posicao + 1 < len(self.tokens):
                 proximo_token = self.tokens[self.posicao + 1]
                 if proximo_token.tipo not in {
@@ -264,26 +258,13 @@ class AnalisadorSintatico:
                     "IGUAL",
                     "DIFERENTE",
                 }:
-                    # É apenas um ID, não uma comparação
                     token_id = self._consumir("ID")
                     return ExprLogicoSimpleNode(IdNode(token_id))
 
-        # Caso contrário, é uma expressão completa
         node_esquerda = self._expr()
-        token_atual = self._token_atual()
-        if token_atual.tipo in {
-            "MENOR",
-            "MENOR_IGUAL",
-            "MAIOR",
-            "MAIOR_IGUAL",
-            "IGUAL",
-            "DIFERENTE",
-        }:
-            op_token = self._opLogico()
-            node_direita = self._expr()
-            return ExprLogicoNode(node_esquerda, op_token, node_direita)
-        else:
-            return node_esquerda
+        op_token = self._opLogico()
+        node_direita = self._expr()
+        return ExprLogicoNode(node_esquerda, op_token, node_direita)
 
     def _opLogico(self):
         """<opLogico> ::= < | <= | > | >= | = | <>"""

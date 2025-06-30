@@ -77,7 +77,6 @@ class AnalisadorLexico:
             token = self._proximo_token()
             if token and token.tipo != "ESPAÇO" and token.tipo != "COMENTÁRIO":
                 tokens.append(token)
-        tokens.append(Token("EOF", "EOF", self.linha, self.coluna))
         return tokens
 
     def _proximo_token(self):

@@ -225,9 +225,9 @@ class Expr2Node(ASTNode):
     """Representa a continuação de uma expressão: + <termo> <expr2> | - <termo> <expr2> | ε"""
 
     def __init__(self, operador=None, termo=None, expr2=None):
-        self.operador = operador  # Token '+' ou '-', None para ε
-        self.termo = termo  # TermoNode ou None para ε
-        self.expr2 = expr2  # Expr2Node ou None para ε
+        self.operador = operador
+        self.termo = termo
+        self.expr2 = expr2
 
     def __str__(self):
         if self.operador is None:
@@ -246,9 +246,9 @@ class Termo2Node(ASTNode):
     """Representa a continuação de um termo: * <fator> <termo2> | / <fator> <termo2> | ε"""
 
     def __init__(self, operador=None, fator=None, termo2=None):
-        self.operador = operador  # Token '*' ou '/', None para ε
-        self.fator = fator  # FatorNode ou None para ε
-        self.termo2 = termo2  # Termo2Node ou None para ε
+        self.operador = operador
+        self.fator = fator
+        self.termo2 = termo2
 
     def __str__(self):
         if self.operador is None:
@@ -264,14 +264,12 @@ class Termo2Node(ASTNode):
 
 
 class FatorNode(ASTNode):
-    """Representa um fator: (<expr>) | - <fator> | id | num"""
-
     def __init__(self, tipo, valor=None, expr=None, fator=None, token=None):
-        self.tipo = tipo  # 'parenteses', 'negativo', 'id', 'num'
-        self.valor = valor  # Para 'id' e 'num'
-        self.expr = expr  # Para expressões entre parênteses
-        self.fator = fator  # Para fator negativo
-        self.token = token  # Token original
+        self.tipo = tipo
+        self.valor = valor
+        self.expr = expr
+        self.fator = fator
+        self.token = token
 
     def __str__(self):
         if self.tipo == "parenteses":
@@ -289,8 +287,6 @@ class FatorNode(ASTNode):
 
 
 class OpLogicoNode(ASTNode):
-    """Representa operadores lógicos: < | <= | > | >= | = | <>"""
-
     def __init__(self, token):
         self.token = token
         self.valor = token.valor
@@ -300,8 +296,6 @@ class OpLogicoNode(ASTNode):
 
 
 class CompostoNode(ComandoNode):
-    """Representa um comando composto: início <lista comandos> fim"""
-
     def __init__(self, lista_comandos):
         self.lista_comandos = lista_comandos
 
@@ -310,8 +304,6 @@ class CompostoNode(ComandoNode):
 
 
 class ListaComandosNode(ASTNode):
-    """Representa uma lista de comandos: <comando>; {<comando>;}"""
-
     def __init__(self, comandos):
         self.comandos = comandos
 
@@ -320,12 +312,10 @@ class ListaComandosNode(ASTNode):
 
 
 class StringVarNode(ASTNode):
-    """Representa stringvar: str | <expr>"""
-
     def __init__(self, tipo, valor=None, expr=None):
-        self.tipo = tipo  # 'string' ou 'expr'
-        self.valor = valor  # Para strings literais
-        self.expr = expr  # Para expressões
+        self.tipo = tipo
+        self.valor = valor
+        self.expr = expr
 
     def __str__(self):
         if self.tipo == "string":
@@ -336,8 +326,6 @@ class StringVarNode(ASTNode):
 
 
 class IdNode(ASTNode):
-    """Representa um identificador"""
-
     def __init__(self, token):
         self.token = token
         self.valor = token.valor
@@ -347,8 +335,6 @@ class IdNode(ASTNode):
 
 
 class ExprLogicoSimpleNode(ASTNode):
-    """Representa a forma simples de expressão lógica: apenas um id"""
-
     def __init__(self, id_node):
         self.id_node = id_node
 
@@ -360,8 +346,6 @@ class ExprLogicoSimpleNode(ASTNode):
 
 
 class DeclaracoesNode(ASTNode):
-    """Representa o conjunto de declarações de variáveis"""
-
     def __init__(self, declaracoes):
         self.declaracoes = declaracoes
 

@@ -5,7 +5,6 @@ from analisador_semantico import AnalisadorSemantico
 import traceback
 import sys
 
-# Variável global para controlar logs de debug
 DEBUG = False
 
 
@@ -193,7 +192,6 @@ class Interpretador:
             print(resultado)
 
     def interpretar_StringVarNode(self, no):
-        """Interpreta um StringVar (string literal ou expressão)"""
         if hasattr(no, "tipo"):
             if no.tipo == "string":
                 valor = no.valor if hasattr(no, "valor") else ""
@@ -241,14 +239,13 @@ class Interpretador:
                 debug_print("    Executando corpo do loop")
                 self.interpretar(no.corpo)
 
-                if iteracao > 100:  # Proteção contra loop infinito
+                if iteracao > 100:
                     debug_print("  AVISO: Loop executado mais de 100 vezes, parando")
                     break
 
     def interpretar_ExprLogicoNode(self, no):
         debug_print("EXPRESSÃO LÓGICA")
         if no.esquerda and no.direita and no.operador:
-            # Lidar com OpLogicoNode ou token direto
             if hasattr(no.operador, "valor"):
                 operador_valor = no.operador.valor
             else:
@@ -292,7 +289,6 @@ class Interpretador:
             debug_print("EXPRESSÃO LÓGICA SIMPLES")
             valor = self.interpretar(no.id_node)
             debug_print(f"  Valor: {valor}")
-            # Em uma expressão lógica, retorna True se o valor for diferente de 0/False
             resultado = bool(valor)
             debug_print(f"  Resultado lógico: {resultado}")
             return resultado
@@ -307,7 +303,6 @@ class Interpretador:
 
             if hasattr(no, "expr2") and no.expr2:
                 debug_print(f"  Interpretando expr2...")
-                # Expr2 aplica a operação ao termo_valor
                 expr2_resultado = self.interpretar_expr2_com_valor(
                     no.expr2, termo_valor
                 )
@@ -326,7 +321,6 @@ class Interpretador:
 
             if hasattr(no, "termo2") and no.termo2:
                 debug_print(f"  Interpretando termo2...")
-                # Termo2 aplica a operação ao fator_valor
                 termo2_resultado = self.interpretar_termo2_com_valor(
                     no.termo2, fator_valor
                 )
@@ -337,7 +331,6 @@ class Interpretador:
         return 1
 
     def interpretar_FatorNode(self, no):
-        """Interpreta um fator"""
         if hasattr(no, "tipo"):
             debug_print(f"FATOR ({no.tipo})")
 
@@ -373,7 +366,6 @@ class Interpretador:
         return 0
 
     def interpretar_Expr2Node(self, no):
-        """Interpreta a continuação de uma expressão - método mantido para compatibilidade"""
         debug_print("EXPR2 - Método legado (não deveria ser chamado diretamente)")
         if hasattr(no, "operador") and no.operador:
             termo_valor = (
@@ -398,7 +390,6 @@ class Interpretador:
             return 0
 
     def interpretar_expr2_com_valor(self, expr2_no, valor_acumulado):
-        """Interpreta expr2 aplicando as operações ao valor acumulado"""
         if hasattr(expr2_no, "operador") and expr2_no.operador:
             debug_print("EXPR2 - Continuação de expressão com valor")
 
@@ -416,7 +407,6 @@ class Interpretador:
             )
             debug_print(f"  Operador: {operador}")
 
-            # Aplicar a operação ao valor acumulado
             if operador == "+":
                 resultado_parcial = valor_acumulado + termo_valor
             elif operador == "-":
@@ -428,7 +418,6 @@ class Interpretador:
                 f"  Operação: {valor_acumulado} {operador} {termo_valor} = {resultado_parcial}"
             )
 
-            # Processar o resto da expressão recursivamente
             if hasattr(expr2_no, "expr2") and expr2_no.expr2:
                 resultado_final = self.interpretar_expr2_com_valor(
                     expr2_no.expr2, resultado_parcial
@@ -437,12 +426,10 @@ class Interpretador:
             else:
                 return resultado_parcial
         else:
-            # Caso épsilon
             debug_print("EXPR2 - Épsilon, retornando valor acumulado")
             return valor_acumulado
 
     def interpretar_termo2_com_valor(self, termo2_no, valor_acumulado):
-        """Interpreta termo2 aplicando as operações ao valor acumulado"""
         if hasattr(termo2_no, "operador") and termo2_no.operador:
             debug_print("TERMO2 - Continuação de termo com valor")
 
@@ -460,7 +447,6 @@ class Interpretador:
             )
             debug_print(f"  Operador: {operador}")
 
-            # Aplicar a operação ao valor acumulado
             if operador == "*":
                 resultado_parcial = valor_acumulado * fator_valor
             elif operador == "/":
@@ -474,7 +460,6 @@ class Interpretador:
                 f"  Operação: {valor_acumulado} {operador} {fator_valor} = {resultado_parcial}"
             )
 
-            # Processar o resto do termo recursivamente
             if hasattr(termo2_no, "termo2") and termo2_no.termo2:
                 resultado_final = self.interpretar_termo2_com_valor(
                     termo2_no.termo2, resultado_parcial
@@ -483,12 +468,10 @@ class Interpretador:
             else:
                 return resultado_parcial
         else:
-            # Caso épsilon
             debug_print("TERMO2 - Épsilon, retornando valor acumulado")
             return valor_acumulado
 
     def interpretar_IdNode(self, no):
-        """Interpreta um identificador"""
         if hasattr(no, "valor") and no.valor:
             nome_var = no.valor
             if nome_var not in self.variaveis:
@@ -499,7 +482,6 @@ class Interpretador:
         return 0
 
     def interpretar_OpLogicoNode(self, no):
-        """Interpreta um operador lógico (usado indiretamente)"""
         if hasattr(no, "valor"):
             return no.valor
         return None
@@ -640,14 +622,12 @@ if __name__ == "__main__":
     from read_code_file import read_code_file
 
     try:
-        # Get the argument from the terminal
         if len(sys.argv) > 1:
             file_path = sys.argv[1]
+            with open(file_path, "r", encoding="utf-8") as file:
+                codigo_fonte = file.read()
         else:
             raise Exception("No file path provided as argument.")
-
-        # Pass the file path to read_code_file
-        codigo_fonte = read_code_file(file_path)
 
         executor = ExecutorInterpretador()
         sucesso = executor.interpretar_codigo(codigo_fonte)
