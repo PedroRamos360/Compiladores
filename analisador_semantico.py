@@ -202,9 +202,6 @@ class AnalisadorSemantico:
     def visitar_NumeroNode(self, no: NumeroNode) -> str:
         return self.verificar_tipo_numero(no.valor)
 
-    def visitar_StringNode(self, no: StringNode) -> str:
-        return "string"
-
     def visitar_VariavelNode(self, no: VariavelNode) -> str:
         simbolo = self.tabela_de_simbolos.buscar(no.valor)
         if not simbolo:
@@ -226,7 +223,6 @@ class AnalisadorSemantico:
         if no.expr:
             return self.visitar(no.expr)
         return "inteiro"
-
 
     def verificar_tipo_numero(self, numero: int) -> str:
         if numero == 0 or numero == 1:

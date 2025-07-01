@@ -1,0 +1,8 @@
+programa testeString;
+var
+    x: inteiro;
+
+início
+    x := 42;
+    escrever("Valor de x é: ", x);
+fim.

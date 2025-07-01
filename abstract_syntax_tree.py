@@ -184,15 +184,6 @@ class NumeroNode(ASTNode):
         return f"NumeroNode({self.valor})"
 
 
-class StringNode(ASTNode):
-    def __init__(self, token: Token) -> None:
-        self.token = token
-        self.valor = token.valor[1:-1]
-
-    def __str__(self) -> str:
-        return f"StringNode('{self.valor}')"
-
-
 class ExprNode(ASTNode):
     def __init__(self, termo: "TermoNode", expr2: Optional["Expr2Node"]) -> None:
         self.termo = termo
