@@ -1,5 +1,6 @@
 <prog>::=programa id; [<declarações>] <bloco> .
-<declarações>::=var id {,id} : <tipo>; {id {,id} : <tipo>;}
+<declarações>::=var <lista_declaracao_var> {<lista_declaracao_var>}
+<lista_declaração_var>::= id {,id} : <tipo>;
 <bloco>::= início <lista comandos> fim
 <tipo>::=inteiro | lógico
 <lista comandos>::=<comando>; {<comando>;}

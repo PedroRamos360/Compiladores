@@ -1,61 +1,48 @@
+from typing import Optional
 from abstract_syntax_tree import *
 from tabela_de_simbolos import TabelaDeSimbolos, Simbolo
 
 
 class SemanticError(Exception):
-    def __init__(self, mensagem, token=None):
+    def __init__(self, mensagem: str, token: Optional[Token] = None) -> None:
         super().__init__(mensagem)
         self.mensagem = mensagem
         self.token = token
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.token:
             return f"Erro Semântico: {self.mensagem} na linha {self.token.linha}, coluna {self.token.coluna}"
         return f"Erro Semântico: {self.mensagem}"
 
 
 class AnalisadorSemantico:
-    def __init__(self):
+    def __init__(self) -> None:
         self.tabela_de_simbolos = TabelaDeSimbolos()
 
-    def visitar(self, no):
+    def visitar(self, no: ASTNode) -> Optional[str]:
         nome_metodo = f"visitar_{type(no).__name__}"
         visitante = getattr(self, nome_metodo, self.visitante_generico)
         return visitante(no)
 
-    def visitante_generico(self, no):
+    def visitante_generico(self, no: ASTNode) -> None:
         raise Exception(f"Nenhum método visitar_{type(no).__name__} definido")
 
-    def visitar_ProgramaNode(self, no):
+    def visitar_ProgramaNode(self, no: ProgramaNode) -> None:
         if no.declaracoes:
-            if isinstance(no.declaracoes, DeclaracoesNode):
-                self.visitar(no.declaracoes)
-            else:
-                for declaracao in no.declaracoes:
-                    self.visitar(declaracao)
+            self.visitar(no.declaracoes)
         self.visitar(no.bloco)
 
-    def visitar_DeclaracoesNode(self, no):
-        """Visita o nó de declarações"""
+    def visitar_DeclaracoesNode(self, no: DeclaracoesNode) -> None:
         if hasattr(no, "declaracoes") and no.declaracoes:
             for declaracao in no.declaracoes:
                 self.visitar(declaracao)
 
-    def visitar_BlocoNode(self, no):
+    def visitar_BlocoNode(self, no: BlocoNode) -> None:
         if hasattr(no, "lista_comandos") and no.lista_comandos:
-            if isinstance(no.lista_comandos, ListaComandosNode):
-                self.visitar(no.lista_comandos)
-            else:
-                for comando in no.lista_comandos:
-                    self.visitar(comando)
-
-    def visitar_ListaComandosNode(self, no):
-        """Visita uma lista de comandos"""
-        if hasattr(no, "comandos") and no.comandos:
-            for comando in no.comandos:
+            for comando in no.lista_comandos:
                 self.visitar(comando)
 
-    def visitar_DeclaracaoVarNode(self, no):
+    def visitar_DeclaracaoVarNode(self, no: DeclaracaoVarNode) -> None:
         nome_tipo = no.tipo_node.valor
         for no_var in no.var_nodes:
             nome_variavel = no_var.valor
@@ -66,7 +53,7 @@ class AnalisadorSemantico:
             simbolo = Simbolo(nome_variavel, nome_tipo)
             self.tabela_de_simbolos.definir(simbolo)
 
-    def visitar_AtribuicaoNode(self, no):
+    def visitar_AtribuicaoNode(self, no: AtribuicaoNode) -> None:
         no_variavel = no.esquerda
         simbolo = self.tabela_de_simbolos.buscar(no_variavel.valor)
         if not simbolo:
@@ -74,20 +61,15 @@ class AnalisadorSemantico:
                 f"Variável '{no_variavel.valor}' não declarada.",
                 token=no_variavel.token,
             )
-
         tipo_expressao = self.visitar(no.direita)
-
-        if simbolo.tipo != tipo_expressao:
+        if simbolo.tipo == "lógico" and tipo_expressao == "inteiro":
             raise SemanticError(
                 f"Incompatibilidade de tipos. Não é possível atribuir '{tipo_expressao}' para a variável '{no_variavel.valor}' do tipo '{simbolo.tipo}'.",
                 token=no.op,
             )
 
-    def extrair_token_de_no(self, no):
+    def extrair_token_de_no(self, no: ASTNode) -> Optional[Token]:
         if hasattr(no, "token") and no.token:
-            return no.token
-
-        if hasattr(no, "valor") and hasattr(no, "token"):
             return no.token
         elif hasattr(no, "esquerda") and hasattr(no.esquerda, "token"):
             return no.esquerda.token
@@ -100,8 +82,7 @@ class AnalisadorSemantico:
 
         return None
 
-    def visitar_SeNode(self, no):
-        """Visita um comando SE"""
+    def visitar_SeNode(self, no: SeNode) -> None:
         if no.condicao:
             tipo_condicao = self.visitar(no.condicao)
             if tipo_condicao != "lógico":
@@ -117,8 +98,7 @@ class AnalisadorSemantico:
         if hasattr(no, "ramo_senao") and no.ramo_senao:
             self.visitar(no.ramo_senao)
 
-    def visitar_EnquantoNode(self, no):
-        """Visita um comando ENQUANTO"""
+    def visitar_EnquantoNode(self, no: EnquantoNode) -> None:
         if no.condicao:
             tipo_condicao = self.visitar(no.condicao)
             if tipo_condicao != "lógico":
@@ -131,8 +111,7 @@ class AnalisadorSemantico:
         if no.corpo:
             self.visitar(no.corpo)
 
-    def visitar_LerNode(self, no):
-        """Visita um comando LER"""
+    def visitar_LerNode(self, no: LerNode) -> None:
         if hasattr(no, "variaveis") and no.variaveis:
             for variavel in no.variaveis:
                 simbolo = self.tabela_de_simbolos.buscar(variavel.valor)
@@ -142,78 +121,66 @@ class AnalisadorSemantico:
                         token=variavel.token,
                     )
 
-    def visitar_EscreverNode(self, no):
-        """Visita um comando ESCREVER"""
+    def visitar_EscreverNode(self, no: EscreverNode) -> None:
         if hasattr(no, "expressoes") and no.expressoes:
             for expr in no.expressoes:
                 self.visitar(expr)
 
-    def visitar_StringVarNode(self, no):
-        """Visita um StringVar"""
+    def visitar_StringVarNode(self, no: StringVarNode) -> str:
         if hasattr(no, "tipo") and no.tipo == "expr":
             if hasattr(no, "expr") and no.expr:
                 return self.visitar(no.expr)
         return "string"
 
-    def visitar_ExprNode(self, no):
-        """Visita uma expressão"""
+    def visitar_ExprNode(self, no: ExprNode) -> str:
         if hasattr(no, "termo") and no.termo:
             tipo_termo = self.visitar(no.termo)
             if hasattr(no, "expr2") and no.expr2:
-                self.visitar(no.expr2)
-            return tipo_termo
+                tipo_expr2 = self.visitar(no.expr2)
+            return self.juncao_tipos(tipo_termo, tipo_expr2)
         return "inteiro"
 
-    def visitar_TermoNode(self, no):
-        """Visita um termo"""
-        if hasattr(no, "fator") and no.fator:
-            tipo_fator = self.visitar(no.fator)
-            if hasattr(no, "termo2") and no.termo2:
-                self.visitar(no.termo2)
-            return tipo_fator
-        return "inteiro"
+    def visitar_TermoNode(self, no: TermoNode) -> str:
+        tipo_fator = self.visitar(no.fator)
+        if hasattr(no, "termo2") and no.termo2:
+            tipo_termo2 = self.visitar(no.termo2)
+        return self.juncao_tipos(tipo_fator, tipo_termo2)
 
-    def visitar_FatorNode(self, no):
-        """Visita um fator"""
-        if hasattr(no, "tipo"):
-            if no.tipo == "parenteses" and hasattr(no, "expr") and no.expr:
-                return self.visitar(no.expr)
-            elif no.tipo == "negativo" and hasattr(no, "fator") and no.fator:
-                return self.visitar(no.fator)
-            elif no.tipo == "id" and hasattr(no, "valor"):
-                simbolo = self.tabela_de_simbolos.buscar(no.valor)
-                if not simbolo:
-                    raise SemanticError(
-                        f"Variável '{no.valor}' não declarada.",
-                        token=no.token if hasattr(no, "token") else None,
-                    )
-                return simbolo.tipo
-            elif no.tipo == "num":
-                return "inteiro"
-        return "inteiro"
+    def visitar_FatorNode(self, no: FatorNode) -> str:
+        if no.tipo == "parenteses" and hasattr(no, "expr") and no.expr:
+            return self.visitar(no.expr)
+        elif no.tipo == "negativo" and hasattr(no, "fator") and no.fator:
+            return self.visitar(no.fator)
+        elif no.tipo == "id" and hasattr(no, "valor"):
+            simbolo = self.tabela_de_simbolos.buscar(no.valor)
+            if not simbolo:
+                raise SemanticError(
+                    f"Variável '{no.valor}' não declarada.",
+                    token=no.token if hasattr(no, "token") else None,
+                )
+            return simbolo.tipo
+        elif no.tipo == "num":
+            return self.verificar_tipo_numero(no.valor)
 
-    def visitar_Expr2Node(self, no):
-        """Visita continuação de expressão"""
+    def visitar_Expr2Node(self, no: Expr2Node) -> str:
         if hasattr(no, "operador") and no.operador:
             if hasattr(no, "termo") and no.termo:
                 tipo_termo = self.visitar(no.termo)
             if hasattr(no, "expr2") and no.expr2:
-                self.visitar(no.expr2)
-            return "inteiro"
-        return "inteiro"
+                tipo_expr2 = self.visitar(no.expr2)
+            return self.juncao_tipos(tipo_termo, tipo_expr2)
+        return "lógico"
 
-    def visitar_Termo2Node(self, no):
-        """Visita continuação de termo"""
+    def visitar_Termo2Node(self, no: Termo2Node) -> str:
         if hasattr(no, "operador") and no.operador:
             if hasattr(no, "fator") and no.fator:
                 tipo_fator = self.visitar(no.fator)
             if hasattr(no, "termo2") and no.termo2:
-                self.visitar(no.termo2)
-            return "inteiro"
-        return "inteiro"
+                tipo_termo2 = self.visitar(no.termo2)
+            return self.juncao_tipos(tipo_fator, tipo_termo2)
+        return "lógico"
 
-    def visitar_IdNode(self, no):
-        """Visita um identificador"""
+    def visitar_IdNode(self, no: IdNode) -> str:
         if hasattr(no, "valor"):
             simbolo = self.tabela_de_simbolos.buscar(no.valor)
             if not simbolo:
@@ -224,45 +191,27 @@ class AnalisadorSemantico:
             return simbolo.tipo
         return "inteiro"
 
-    def visitar_ExprLogicoSimpleNode(self, no):
-        """Visita expressão lógica simples"""
+    def visitar_ExprLogicoSimpleNode(self, no: ExprLogicoSimpleNode) -> str:
         if hasattr(no, "id_node") and no.id_node:
             return self.visitar(no.id_node)
         return "lógico"
 
-    def visitar_ExprLogicoNode(self, no):
-        """Visita uma expressão lógica"""
-        if no.esquerda and no.direita:
-            tipo_esquerda = self.visitar(no.esquerda)
-            tipo_direita = self.visitar(no.direita)
-            if tipo_esquerda != tipo_direita:
-                raise SemanticError(
-                    f"Incompatibilidade de tipos em expressão lógica: {tipo_esquerda} e {tipo_direita}"
-                )
-            return "lógico"
+    def visitar_ExprLogicoNode(self, no: ExprLogicoNode) -> str:
         return "lógico"
 
-    def visitar_OpLogicoNode(self, no):
-        """Visita operador lógico (nada a fazer)"""
-        pass
+    def visitar_NumeroNode(self, no: NumeroNode) -> str:
+        return self.verificar_tipo_numero(no.valor)
 
-    def visitar_NumeroNode(self, no):
-        """Visita um número"""
-        return "inteiro"
-
-    def visitar_StringNode(self, no):
-        """Visita uma string"""
+    def visitar_StringNode(self, no: StringNode) -> str:
         return "string"
 
-    def visitar_VariavelNode(self, no):
-        """Visita uma variável"""
+    def visitar_VariavelNode(self, no: VariavelNode) -> str:
         simbolo = self.tabela_de_simbolos.buscar(no.valor)
         if not simbolo:
             raise SemanticError(f"Variável '{no.valor}' não declarada.", token=no.token)
         return simbolo.tipo
 
-    def visitar_OpBinariaNode(self, no):
-        """Visita operação binária"""
+    def visitar_OpBinariaNode(self, no: OpBinariaNode) -> str:
         if no.esquerda and no.direita:
             tipo_esquerda = self.visitar(no.esquerda)
             tipo_direita = self.visitar(no.direita)
@@ -273,12 +222,18 @@ class AnalisadorSemantico:
             return tipo_esquerda
         return "inteiro"
 
-    def visitar_OpUnariaNode(self, no):
-        """Visita operação unária"""
+    def visitar_OpUnariaNode(self, no: OpUnariaNode) -> str:
         if no.expr:
             return self.visitar(no.expr)
         return "inteiro"
 
-    def visitar_TipoNode(self, no):
-        """Visita um tipo (nada a fazer)"""
-        pass
+
+    def verificar_tipo_numero(self, numero: int) -> str:
+        if numero == 0 or numero == 1:
+            return "lógico"
+        return "inteiro"
+
+    def juncao_tipos(self, tipo1: str, tipo2: str) -> str:
+        if tipo1 == "lógico" and tipo2 == "lógico":
+            return "lógico"
+        return "inteiro"

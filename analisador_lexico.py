@@ -1,27 +1,28 @@
 import re
+from typing import List, Dict, Optional, Tuple
 
 
 class Token:
-    def __init__(self, tipo, valor, linha, coluna):
+    def __init__(self, tipo: str, valor: str, linha: int, coluna: int) -> None:
         self.tipo = tipo
         self.valor = valor
         self.linha = linha
         self.coluna = coluna
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"Token({self.tipo}, '{self.valor}', Linha {self.linha}, Col {self.coluna})"
         )
 
 
 class AnalisadorLexico:
-    def __init__(self, codigo_fonte):
+    def __init__(self, codigo_fonte: str) -> None:
         self.codigo_fonte = codigo_fonte
         self.posicao = 0
         self.linha = 1
         self.coluna = 1
 
-        self.palavras_reservadas = {
+        self.palavras_reservadas: Dict[str, str] = {
             "programa": "PROGRAMA",
             "var": "VAR",
             "início": "INÍCIO",
@@ -37,7 +38,7 @@ class AnalisadorLexico:
             "faça": "FAÇA",
         }
 
-        self.especificacoes_tokens = [
+        self.especificacoes_tokens: List[Tuple[str, str]] = [
             ("COMENTÁRIO", r"/\*.*?\*/"),
             ("ESPAÇO", r"[ \t]+"),
             ("NOVA_LINHA", r"\n"),
@@ -71,7 +72,7 @@ class AnalisadorLexico:
         )
         self.token_regex = re.compile(regex_unidas, re.DOTALL)
 
-    def analisar(self) -> list[Token]:
+    def analisar(self) -> List[Token]:
         tokens = []
         while self.posicao < len(self.codigo_fonte):
             token = self._proximo_token()
@@ -79,7 +80,7 @@ class AnalisadorLexico:
                 tokens.append(token)
         return tokens
 
-    def _proximo_token(self):
+    def _proximo_token(self) -> Optional[Token]:
         match = self.token_regex.match(self.codigo_fonte, self.posicao)
         if not match:
             return None

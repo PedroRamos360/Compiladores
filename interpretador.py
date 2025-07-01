@@ -1,3 +1,5 @@
+import sys
+from typing import Dict, Any, Optional, Union
 from abstract_syntax_tree import *
 from analisador_lexico import AnalisadorLexico
 from analisador_sintatico import AnalisadorSintatico
@@ -8,25 +10,25 @@ import sys
 DEBUG = False
 
 
-def debug_print(*args, **kwargs):
+def debug_print(*args, **kwargs) -> None:
     """Alias do print que só executa se DEBUG for True"""
     if DEBUG:
         print(*args, **kwargs)
 
 
 class InterpretadorError(Exception):
-    def __init__(self, mensagem, token=None):
+    def __init__(self, mensagem: str, token: Optional[Token] = None) -> None:
         self.mensagem = mensagem
         self.token = token
         super().__init__(self.mensagem)
 
 
 class Interpretador:
-    def __init__(self):
-        self.variaveis = {}
-        self.tipos = {}
+    def __init__(self) -> None:
+        self.variaveis: Dict[str, Any] = {}
+        self.tipos: Dict[str, str] = {}
 
-    def interpretar(self, no):
+    def interpretar(self, no: Optional[ASTNode]) -> Any:
         if no is None:
             debug_print("DEBUG: Nó é None, retornando None")
             return None
@@ -36,7 +38,7 @@ class Interpretador:
         interpretador = getattr(self, nome_metodo, self.interpretador_generico)
         return interpretador(no)
 
-    def interpretador_generico(self, no):
+    def interpretador_generico(self, no: ASTNode) -> None:
         raise InterpretadorError(
             f"Nenhum método interpretar_{type(no).__name__} definido"
         )
@@ -562,13 +564,13 @@ class Interpretador:
 
 
 class ExecutorInterpretador:
-    def __init__(self):
-        self.analisador_lexico = None
-        self.analisador_sintatico = None
+    def __init__(self) -> None:
+        self.analisador_lexico: Optional[AnalisadorLexico] = None
+        self.analisador_sintatico: Optional[AnalisadorSintatico] = None
         self.analisador_semantico = AnalisadorSemantico()
-        self.interpretador = None
+        self.interpretador: Optional[Interpretador] = None
 
-    def interpretar_codigo(self, codigo_fonte):
+    def interpretar_codigo(self, codigo_fonte: str) -> bool:
         try:
             debug_print("=== INICIANDO ANÁLISE LÉXICA ===")
             self.analisador_lexico = AnalisadorLexico(codigo_fonte)

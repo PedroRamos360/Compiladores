@@ -1,19 +1,20 @@
+from typing import List, Optional, Union
 from abstract_syntax_tree import *
 from analisador_lexico import Token
 
 
 class AnalisadorSintatico:
-    def __init__(self, tokens: list[Token]):
+    def __init__(self, tokens: List[Token]) -> None:
         self.tokens = tokens
         self.posicao = 0
 
-    def _token_atual(self):
+    def _token_atual(self) -> Token:
         return self.tokens[self.posicao]
 
-    def _avancar(self):
+    def _avancar(self) -> None:
         self.posicao += 1
 
-    def _consumir(self, tipo_esperado):
+    def _consumir(self, tipo_esperado: str) -> Token:
         token = self._token_atual()
         if token.tipo == tipo_esperado:
             self._avancar()
@@ -27,7 +28,7 @@ class AnalisadorSintatico:
     def analisar(self) -> ProgramaNode:
         return self._programa()
 
-    def _programa(self):
+    def _programa(self) -> ProgramaNode:
         """<prog>::=programa id; [<declarações>] <bloco> ."""
         self._consumir("PROGRAMA")
         nome_programa = self._consumir("ID").valor
@@ -39,8 +40,8 @@ class AnalisadorSintatico:
         self._consumir("PONTO")
         return ProgramaNode(nome_programa, declaracoes, bloco)
 
-    def _declaracoes(self):
-        """[<declarações>] ::= var ..."""
+    def _declaracoes(self) -> Optional[DeclaracoesNode]:
+        """<declarações>::=var <lista_declaracao_var> {<lista_declaracao_var>}"""
         declaracoes = []
         if self._token_atual().tipo == "VAR":
             self._consumir("VAR")
@@ -48,8 +49,8 @@ class AnalisadorSintatico:
                 declaracoes.append(self._lista_declaracao_var())
         return DeclaracoesNode(declaracoes) if declaracoes else None
 
-    def _lista_declaracao_var(self):
-        """id {,id} : <tipo>;"""
+    def _lista_declaracao_var(self) -> DeclaracaoVarNode:
+        """<lista_declaração_var>::= id {,id} : <tipo>;"""
         vars_nos = [VariavelNode(self._consumir("ID"))]
         while self._token_atual().tipo == "VÍRGULA":
             self._consumir("VÍRGULA")
@@ -60,7 +61,7 @@ class AnalisadorSintatico:
         self._consumir("PONTO_VÍRGULA")
         return DeclaracaoVarNode(vars_nos, tipo_no)
 
-    def _tipo(self):
+    def _tipo(self) -> TipoNode:
         """<tipo> ::= inteiro | lógico"""
         token = self._token_atual()
         if token.tipo == "INTEIRO":
@@ -74,14 +75,14 @@ class AnalisadorSintatico:
                 f"Tipo desconhecido '{token.valor}' na linha {token.linha}"
             )
 
-    def _bloco(self):
+    def _bloco(self) -> BlocoNode:
         """<bloco> ::= início <lista comandos> fim"""
         self._consumir("INÍCIO")
         lista_comandos = self._lista_comandos()
         self._consumir("FIM")
         return BlocoNode(lista_comandos.comandos)
 
-    def _lista_comandos(self):
+    def _lista_comandos(self) -> ListaComandosNode:
         """<lista comandos> ::= <comando>; {<comando>;}"""
         comandos = [self._comando()]
         while self._token_atual().tipo == "PONTO_VÍRGULA":
@@ -91,8 +92,8 @@ class AnalisadorSintatico:
             comandos.append(self._comando())
         return ListaComandosNode(comandos)
 
-    def _comando(self):
-        """<comando> ::= <atribuição> | <leitura> | <escrita> | <composto> | <condicional> | <repetição>"""
+    def _comando(self) -> ComandoNode:
+        """<comando> ::= <atribuição> | <leitura> | <escrita> | <bloco> | <condicional> | <repetição>"""
         token_tipo = self._token_atual().tipo
         if token_tipo == "ID":
             return self._atribuicao()
@@ -119,7 +120,7 @@ class AnalisadorSintatico:
         direita = self._expr()
         return AtribuicaoNode(esquerda, op, direita)
 
-    def _leitura(self):
+    def _leitura(self) -> LerNode:
         """<leitura> ::= ler (id {,id})"""
         self._consumir("LER")
         self._consumir("LPAREN")
@@ -130,7 +131,7 @@ class AnalisadorSintatico:
         self._consumir("RPAREN")
         return LerNode(variaveis)
 
-    def _escrita(self):
+    def _escrita(self) -> EscreverNode:
         """<escrita> ::= escrever (<stringvar> {,<stringvar>})"""
         self._consumir("ESCREVER")
         self._consumir("LPAREN")
@@ -141,16 +142,7 @@ class AnalisadorSintatico:
         self._consumir("RPAREN")
         return EscreverNode(expressoes)
 
-    def _stringvar(self):
-        """<stringvar> ::= str | <expr>"""
-        if self._token_atual().tipo == "STRING":
-            token = self._consumir("STRING")
-            return StringVarNode("string", valor=token.valor[1:-1])
-        else:
-            expr = self._expr()
-            return StringVarNode("expr", expr=expr)
-
-    def _condicional(self):
+    def _condicional(self) -> SeNode:
         """<condicional> ::= se <exprLogico> então <comando> [senão <comando>]"""
         self._consumir("SE")
         condicao = self._exprLogico()
@@ -162,7 +154,7 @@ class AnalisadorSintatico:
             ramo_senao = self._comando()
         return SeNode(condicao, ramo_entao, ramo_senao)
 
-    def _repeticao(self):
+    def _repeticao(self) -> EnquantoNode:
         """<repetição> ::= enquanto <exprLogico> faça <comando>"""
         self._consumir("ENQUANTO")
         condicao = self._exprLogico()
@@ -170,19 +162,19 @@ class AnalisadorSintatico:
         corpo = self._comando()
         return EnquantoNode(condicao, corpo)
 
-    def _expr(self):
+    def _expr(self) -> ExprNode:
         """<expr> ::= <termo> <expr2>"""
         termo = self._termo()
         expr2 = self._expr2()
         return ExprNode(termo, expr2)
 
-    def _termo(self):
+    def _termo(self) -> TermoNode:
         """<termo> ::= <fator> <termo2>"""
         fator = self._fator()
         termo2 = self._termo2()
         return TermoNode(fator, termo2)
 
-    def _termo2(self):
+    def _termo2(self) -> Termo2Node:
         """<termo2> ::= * <fator> <termo2> | / <fator> <termo2> | ε"""
         if self._token_atual().tipo == "MULT":
             op = self._consumir("MULT")
@@ -197,7 +189,7 @@ class AnalisadorSintatico:
         else:
             return Termo2Node()
 
-    def _expr2(self):
+    def _expr2(self) -> Expr2Node:
         """<expr2> ::= + <termo> <expr2> | - <termo> <expr2> | ε"""
         if self._token_atual().tipo == "MAIS":
             op = self._consumir("MAIS")
@@ -212,7 +204,7 @@ class AnalisadorSintatico:
         else:
             return Expr2Node()
 
-    def _fator(self):
+    def _fator(self) -> FatorNode:
         """<fator> ::= (<expr>) | - <fator> | id | num"""
         if self._token_atual().tipo == "LPAREN":
             self._consumir("LPAREN")
@@ -234,7 +226,7 @@ class AnalisadorSintatico:
                 f"Fator inesperado '{self._token_atual().valor}' na linha {self._token_atual().linha}"
             )
 
-    def _exprLogico(self):
+    def _exprLogico(self) -> Union[ExprLogicoNode, ExprLogicoSimpleNode]:
         """<exprLogico> ::= <expr> <opLogico> <expr> | id"""
         if self._token_atual().tipo == "ID":
             if self.posicao + 1 < len(self.tokens):
@@ -255,7 +247,7 @@ class AnalisadorSintatico:
         node_direita = self._expr()
         return ExprLogicoNode(node_esquerda, op_token, node_direita)
 
-    def _opLogico(self):
+    def _opLogico(self) -> OpLogicoNode:
         """<opLogico> ::= < | <= | > | >= | = | <>"""
         token = self._token_atual()
         if token.tipo in {
@@ -272,3 +264,12 @@ class AnalisadorSintatico:
             raise SyntaxError(
                 f"Operador lógico inesperado '{token.valor}' na linha {token.linha}"
             )
+
+    def _stringvar(self) -> StringVarNode:
+        """<stringvar> ::= str | <expr>"""
+        if self._token_atual().tipo == "STRING":
+            token = self._consumir("STRING")
+            return StringVarNode("string", valor=token.valor[1:-1])
+        else:
+            expr = self._expr()
+            return StringVarNode("expr", expr=expr)

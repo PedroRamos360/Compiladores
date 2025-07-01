@@ -5,6 +5,6 @@ var
 
 início
     b := 15;
-    a := b;  /* ERRO: 'a' é lógico, mas 'b' é inteiro. */
+    a := 2;  /* ERRO: 'a' é lógico, mas 'b' é inteiro. */
     escrever(b);
 fim.
