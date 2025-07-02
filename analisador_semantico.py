@@ -208,22 +208,6 @@ class AnalisadorSemantico:
             raise SemanticError(f"Variável '{no.valor}' não declarada.", token=no.token)
         return simbolo.tipo
 
-    def visitar_OpBinariaNode(self, no: OpBinariaNode) -> str:
-        if no.esquerda and no.direita:
-            tipo_esquerda = self.visitar(no.esquerda)
-            tipo_direita = self.visitar(no.direita)
-            if tipo_esquerda != tipo_direita:
-                raise SemanticError(
-                    f"Incompatibilidade de tipos em operação binária: {tipo_esquerda} e {tipo_direita}"
-                )
-            return tipo_esquerda
-        return "inteiro"
-
-    def visitar_OpUnariaNode(self, no: OpUnariaNode) -> str:
-        if no.expr:
-            return self.visitar(no.expr)
-        return "inteiro"
-
     def verificar_tipo_numero(self, numero: int) -> str:
         if numero == 0 or numero == 1:
             return "lógico"
