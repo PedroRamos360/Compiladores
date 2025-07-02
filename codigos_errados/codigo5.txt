@@ -1,4 +1,4 @@
-programa ExemploSintatico1
+programa ExemploSintatico1;
 var
     a: inteiro;
 

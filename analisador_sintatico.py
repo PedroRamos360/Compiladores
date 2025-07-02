@@ -72,7 +72,7 @@ class AnalisadorSintatico:
             return TipoNode(token)
         else:
             raise SyntaxError(
-                f"Tipo desconhecido '{token.valor}' na linha {token.linha}"
+                f"Erro de sintaxe: Tipo desconhecido '{token.valor}' na linha {token.linha} coluna {token.coluna}"
             )
 
     def _bloco(self) -> BlocoNode:
@@ -110,7 +110,7 @@ class AnalisadorSintatico:
         else:
             token_atual = self._token_atual()
             raise SyntaxError(
-                f"Comando inesperado '{token_atual.valor}' na linha {token_atual.linha}"
+                f"Erro de sintaxe: Comando inesperado '{token_atual.valor}' na linha {token_atual.linha} coluna {token_atual.coluna}"
             )
 
     def _atribuicao(self) -> AtribuicaoNode:
@@ -223,7 +223,7 @@ class AnalisadorSintatico:
             return FatorNode("num", valor=int(token.valor), token=token)
         else:
             raise SyntaxError(
-                f"Fator inesperado '{self._token_atual().valor}' na linha {self._token_atual().linha}"
+                f"Erro de sintaxe: Fator inesperado '{self._token_atual().valor}' na linha {self._token_atual().linha} coluna {self._token_atual().coluna}"
             )
 
     def _exprLogico(self) -> Union[ExprLogicoNode, ExprLogicoSimpleNode]:
@@ -262,7 +262,7 @@ class AnalisadorSintatico:
             return OpLogicoNode(token)
         else:
             raise SyntaxError(
-                f"Operador lógico inesperado '{token.valor}' na linha {token.linha}"
+                f"Erro de sintaxe: Operador lógico inesperado '{token.valor}' na linha {token.linha} coluna {token.coluna}"
             )
 
     def _stringvar(self) -> StringVarNode:
